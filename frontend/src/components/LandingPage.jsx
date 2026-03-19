@@ -105,7 +105,7 @@ function VideoShowcase() {
 // ── FULL-WIDTH FEATURE SECTION ───────────────────────────────────────────────
 // Text on left, video fills right — same max-width as hero, video dominates
 
-function FeatureSection({ label, title, sub, extras, videoSrc, videoPoster, fallback, reverse }) {
+function FeatureSection({ label, title, sub, extras, videoSrc, videoPoster, fallback }) {
   return (
     <div style={{
       borderTop: "1px solid var(--border)",
@@ -113,35 +113,30 @@ function FeatureSection({ label, title, sub, extras, videoSrc, videoPoster, fall
       maxWidth: 1100,
       margin: "0 auto",
     }}>
-      {/* Text row */}
+      {/* Text row — two columns: title left, sub + extras right */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: reverse ? "1fr 360px" : "360px 1fr",
-        gap: 80,
+        gridTemplateColumns: "1fr 1fr",
+        gap: 64,
         alignItems: "start",
-        marginBottom: 48,
+        marginBottom: 52,
       }}>
-        {reverse ? (
-          <>
-            <div>
-              <div className="section-label">{label}</div>
-              <h2 className="section-title">{title}</h2>
-              <p className="section-sub">{sub}</p>
-              {extras && <div style={{ marginTop: 24 }}>{extras}</div>}
-            </div>
-            <div /> {/* spacer */}
-          </>
-        ) : (
-          <>
-            <div>
-              <div className="section-label">{label}</div>
-              <h2 className="section-title">{title}</h2>
-              <p className="section-sub">{sub}</p>
-              {extras && <div style={{ marginTop: 24 }}>{extras}</div>}
-            </div>
-            <div /> {/* spacer */}
-          </>
-        )}
+        <div>
+          <div className="section-label">{label}</div>
+          <h2 style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "clamp(2rem, 3.5vw, 3rem)",
+            fontWeight: 400,
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+            color: "var(--text)",
+            margin: 0,
+          }}>{title}</h2>
+        </div>
+        <div style={{ paddingTop: 8 }}>
+          <p style={{ fontSize: 15, color: "var(--text-muted)", lineHeight: 1.75, marginBottom: extras ? 24 : 0 }}>{sub}</p>
+          {extras}
+        </div>
       </div>
       {/* Full-width video */}
       <FeatureVideo src={videoSrc} poster={videoPoster} fallback={fallback} />
