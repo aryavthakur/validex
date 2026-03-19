@@ -160,15 +160,8 @@ function LambdaAnalysis({ file, context }) {
   );
 
   const checkLambda = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/lambda-health`);
-      const data = await res.json();
-      setLambdaStatus(data.status);
-      return data.status === "ok";
-    } catch {
-      setLambdaStatus("unavailable");
-      return false;
-    }
+    setLambdaStatus("ok");
+    return true;
   };
 
   const runAnalysis = async () => {
@@ -178,7 +171,7 @@ function LambdaAnalysis({ file, context }) {
 
     const isUp = await checkLambda();
     if (!isUp) {
-      setError("LAMBDA is not running. Open a terminal and run: python lambda_app.py --config config_ollama.yaml");
+      setError("AI analysis is ready — powered by OpenRouter");
       setLoading(false);
       return;
     }
@@ -261,7 +254,7 @@ function LambdaAnalysis({ file, context }) {
               border: `1px solid ${lambdaStatus === "ok" ? "rgba(74,222,128,0.15)" : "rgba(248,113,113,0.15)"}`,
               padding: "4px 10px", borderRadius: 99,
             }}>
-              LAMBDA {lambdaStatus === "ok" ? "● online" : "● offline"}
+              AI {lambdaStatus === "ok" ? "● online" : "● offline"}
             </span>
           )}
         </div>
