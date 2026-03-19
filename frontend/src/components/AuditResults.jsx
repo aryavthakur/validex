@@ -334,6 +334,175 @@ function LambdaAnalysis({ file, context }) {
   );
 }
 
+
+function CleanData({ file }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [approved, setApproved] = useState(false);
+  const [missingThreshold, setMissingThreshold] = useState(50);
+  const [outlierStd, setOutlierStd] = useState(3);
+
+  const runCleaning = async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setApproved(false);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("missing_threshold", missingThreshold / 100);
+    formData.append("outlier_std", outlierStd);
+    formData.append("remove_duplicates", "true");
+    try {
+      const res = await fetch(`${API_BASE}/clean-data`, { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Cleaning failed");
+      setResult(data);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  const downloadClean = () => {
+    if (!result?.clean_csv_b64) return;
+    const bytes = atob(result.clean_csv_b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = result.summary.clean_filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const sevStyle = (sev) => ({
+    high: { color: "var(--red)", background: "var(--red-subtle)", border: "1px solid rgba(248,113,113,0.2)" },
+    med:  { color: "#fcd34d", background: "var(--amber-subtle)", border: "1px solid rgba(245,158,11,0.2)" },
+    low:  { color: "var(--text-dim)", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)" },
+  }[sev] || {});
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-label">Data Cleaning Settings</div>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 18, lineHeight: 1.7 }}>
+          Analyzes your dataset for missing values, outliers, and duplicates. You review the proposed changes before downloading. Nothing is deleted without your approval.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 7 }}>
+              Missing value threshold: {missingThreshold}%
+            </label>
+            <input type="range" min={10} max={90} step={5} value={missingThreshold} onChange={e => setMissingThreshold(Number(e.target.value))} style={{ width: "100%" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+              <span>10% (strict)</span><span>90% (lenient)</span>
+            </div>
+          </div>
+          <div>
+            <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 7 }}>
+              Outlier threshold: {outlierStd}σ
+            </label>
+            <input type="range" min={2} max={5} step={0.5} value={outlierStd} onChange={e => setOutlierStd(Number(e.target.value))} style={{ width: "100%" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+              <span>2σ (strict)</span><span>5σ (lenient)</span>
+            </div>
+          </div>
+        </div>
+        <button className={`btn-run${loading ? " running" : ""}`} onClick={runCleaning} disabled={loading} style={{ width: "auto", padding: "11px 28px" }}>
+          {loading ? (<><div className="spinner" />Analyzing…</>) : "▶ Analyze & Preview Clean"}
+        </button>
+        {error && <div className="error-box" style={{ marginTop: 14 }}>⚠ {error}</div>}
+      </div>
+
+      {result && (<>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
+          {[
+            { label: "Original rows", value: result.summary.original_rows },
+            { label: "Rows to remove", value: result.summary.rows_removed, warn: result.summary.rows_removed > 0 },
+            { label: "Rows kept", value: result.summary.rows_kept },
+            { label: "Columns", value: result.summary.original_cols },
+          ].map((m, i) => (
+            <div key={i} className="metric-card" style={m.warn ? { borderColor: "rgba(245,158,11,0.3)" } : {}}>
+              <div className="metric-label">{m.label}</div>
+              <div className="metric-value" style={m.warn ? { color: "var(--amber)" } : {}}>{m.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-label">Issues Found</div>
+          {result.issues.length === 0 ? (
+            <div style={{ color: "var(--green)", fontSize: 14, padding: "8px 0" }}>✓ No issues found — dataset is already clean!</div>
+          ) : result.issues.map((issue, i) => (
+            <div key={i} style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: i < result.issues.length - 1 ? "1px solid var(--border)" : "none" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", padding: "3px 8px", borderRadius: 4, flexShrink: 0, marginTop: 2, height: "fit-content", ...sevStyle(issue.severity) }}>
+                {issue.severity}
+              </span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, color: "var(--text)", marginBottom: 3 }}>{issue.title}</div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: issue.action ? 5 : 0 }}>{issue.detail}</div>
+                {issue.action && issue.rows_affected > 0 && <div style={{ fontSize: 11, color: "var(--accent-warm)", fontFamily: "var(--font-mono)" }}>Proposed fix: {issue.action}</div>}
+                {issue.action && issue.rows_affected === 0 && <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>Suggestion: {issue.action}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {result.removed_preview?.length > 0 && (
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div className="card-label">Rows to be removed (preview)</div>
+            <div className="table-wrap" style={{ maxHeight: 240, overflowY: "auto" }}>
+              <table>
+                <thead><tr>
+                  <th>Row #</th>
+                  {Object.keys(result.removed_preview[0].data).slice(0, 6).map((k, i) => <th key={i}>{k}</th>)}
+                  {Object.keys(result.removed_preview[0].data).length > 6 && <th>…</th>}
+                </tr></thead>
+                <tbody>{result.removed_preview.map((row, i) => (
+                  <tr key={i}>
+                    <td style={{ color: "var(--red)", fontFamily: "var(--font-mono)" }}>{row.original_index}</td>
+                    {Object.values(row.data).slice(0, 6).map((v, j) => <td key={j}>{v === null ? <span style={{ color: "var(--red)" }}>—</span> : String(v)}</td>)}
+                    {Object.values(row.data).length > 6 && <td style={{ color: "var(--text-dim)" }}>…</td>}
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-label">Cleaned Dataset Preview ({result.summary.rows_kept} rows)</div>
+          <div className="table-wrap" style={{ maxHeight: 300, overflowY: "auto" }}>
+            <table>
+              <thead><tr>{result.preview.columns.map((c, i) => <th key={i}>{c}</th>)}</tr></thead>
+              <tbody>{result.preview.rows.map((row, ri) => (
+                <tr key={ri}>{row.map((cell, ci) => <td key={ci}>{cell ?? <span style={{ color: "var(--text-dim)" }}>—</span>}</td>)}</tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
+
+        {result.summary.rows_removed > 0 ? (
+          <div className="card" style={{ background: approved ? "rgba(74,222,128,0.04)" : "var(--bg-raised)", borderColor: approved ? "rgba(74,222,128,0.2)" : "var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: approved ? 16 : 0 }}>
+              <input type="checkbox" id="approve-clean" checked={approved} onChange={e => setApproved(e.target.checked)} style={{ marginTop: 3, cursor: "pointer", width: 16, height: 16, flexShrink: 0 }} />
+              <label htmlFor="approve-clean" style={{ fontSize: 14, color: "var(--text)", cursor: "pointer", lineHeight: 1.6 }}>
+                I have reviewed the changes above. Remove {result.summary.rows_removed} row{result.summary.rows_removed > 1 ? "s" : ""} and download the cleaned dataset ({result.summary.rows_kept} rows remaining).
+              </label>
+            </div>
+            {approved && <button className="btn-primary" onClick={downloadClean} style={{ marginTop: 8 }}>↓ Download {result.summary.clean_filename}</button>}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "16px 0" }}>
+            <button className="btn-primary" onClick={downloadClean}>↓ Download cleaned dataset (no changes needed)</button>
+          </div>
+        )}
+      </>)}
+    </div>
+  );
+}
+
 function downloadText(content, filename, mime) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -357,6 +526,7 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
     report: "Full Report",
     data: "Data",
     ai: "🤖 AI Analysis",
+    clean: "🧹 Clean Data",
   };
 
   return (
@@ -485,6 +655,11 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
       {/* AI ANALYSIS */}
       {tab === "ai" && (
         <LambdaAnalysis file={file} context={context} />
+      )}
+
+      {/* CLEAN DATA */}
+      {tab === "clean" && (
+        <CleanData file={file} />
       )}
 
       <div style={{ marginTop: 48, textAlign: "center" }}>
