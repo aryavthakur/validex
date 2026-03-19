@@ -275,7 +275,7 @@ async def audit(
     flags = report_json.get("analysis", {}).get("flags", [])
 
     ai_score_data = {"ai_score": None, "ai_score_reason": None}
-    if notes and notes.strip() and baseline_score is not None and OPENROUTER_API_KEY:
+    if notes and notes.strip() and baseline_score is not None and (GROQ_API_KEY or OPENROUTER_API_KEY):
         ai_score_data = await ai_confidence_score(
             baseline_score=baseline_score,
             notes=notes,
