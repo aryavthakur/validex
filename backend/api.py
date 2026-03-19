@@ -231,9 +231,20 @@ async def audit(
                 "bin_edges": [round(float(x), 4) for x in bin_edges],
             }
 
+    # Extract confidence score directly from markdown report
+    baseline_score = None
+    score_match = re.search(r"\*\*(\d+)\s*/\s*100\*\*", report_md)
+    if score_match:
+        baseline_score = int(score_match.group(1))
+
+    # Inject score into report_json so frontend can use it
+    if baseline_score is not None:
+        if "analysis" not in report_json:
+            report_json["analysis"] = {}
+        report_json["analysis"]["confidence"] = baseline_score
+
     # AI confidence scoring — only runs if notes are provided
     notes = ctx.get("notes", "")
-    baseline_score = report_json.get("analysis", {}).get("confidence", None)
     flags = report_json.get("analysis", {}).get("flags", [])
 
     ai_score_data = {"ai_score": None, "ai_score_reason": None}
