@@ -26,21 +26,45 @@ app.add_middleware(
 )
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 OLLAMA_URL = "http://localhost:11434"
-FREE_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-3-27b-it:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "google/gemma-3-12b-it:free",
-]
-
-
 async def call_ai(prompt: str, timeout: float = 60.0) -> str:
-    """Call OpenRouter with automatic fallback across free models, or Ollama locally."""
+    """
+    Call AI provider in priority order:
+    1. Groq (free, fast, reliable) — preferred for production
+    2. OpenRouter free models — fallback if no Groq key
+    3. Ollama — local development fallback
+    """
     async with httpx.AsyncClient(timeout=timeout) as client:
+        # --- Groq (best free option) ---
+        if GROQ_API_KEY:
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": "Bearer " + GROQ_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 2048,
+                },
+            )
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+            if response.status_code == 429:
+                # Groq rate limited — fall through to OpenRouter
+                pass
+            else:
+                raise HTTPException(502, "Groq error: " + response.text[:300])
+
+        # --- OpenRouter free fallback ---
         if OPENROUTER_API_KEY:
-            last_error = ""
-            for model in FREE_MODELS:
+            for model in [
+                "meta-llama/llama-3.3-70b-instruct:free",
+                "google/gemma-3-27b-it:free",
+                "mistralai/mistral-small-3.1-24b-instruct:free",
+            ]:
                 response = await client.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers={
@@ -54,22 +78,23 @@ async def call_ai(prompt: str, timeout: float = 60.0) -> str:
                 )
                 if response.status_code == 200:
                     return response.json()["choices"][0]["message"]["content"]
-                # 429 = rate limited, try next model
                 if response.status_code == 429:
-                    last_error = model + " rate limited"
                     continue
-                # Any other error, raise immediately
                 raise HTTPException(502, "OpenRouter error: " + response.text[:300])
-            raise HTTPException(429, "All free models are rate limited. Please try again in a minute.")
-        else:
+
+        # --- Ollama local fallback ---
+        try:
             response = await client.post(
                 OLLAMA_URL + "/api/generate",
                 json={"model": "llama3.2", "prompt": prompt, "stream": False},
                 timeout=180.0,
             )
-            if response.status_code != 200:
-                raise HTTPException(502, "Ollama error: " + response.text[:300])
-            return response.json().get("response", "")
+            if response.status_code == 200:
+                return response.json().get("response", "")
+        except Exception:
+            pass
+
+        raise HTTPException(503, "No AI provider available. Add a GROQ_API_KEY to your environment.")
 
 
 async def ai_confidence_score(
@@ -147,6 +172,8 @@ def health():
 
 @app.get("/lambda-health")
 async def lambda_health():
+    if GROQ_API_KEY:
+        return {"status": "ok", "provider": "groq"}
     if OPENROUTER_API_KEY:
         return {"status": "ok", "provider": "openrouter"}
     try:
