@@ -193,6 +193,36 @@ def run_audit(csv_path="inputs/results.csv", report_path="outputs/validity_repor
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_text)
 
+    # Write structured JSON so the frontend can show flags, score, interpretations
+    if json_path:
+        import json
+        flags = []
+        if fc_col and not p_col:
+            flags.append({
+                "severity": "high",
+                "title": "Missing p-values",
+                "why": "Fold-change values are present without corresponding p-values. Statistical significance cannot be assessed.",
+                "fix": "Run a statistical test (e.g., t-test or ANOVA) to obtain p-values."
+            })
+        if p_col and not fdr_col:
+            flags.append({
+                "severity": "med",
+                "title": "No multiple-testing correction",
+                "why": "P-values are present without FDR/q-values. This increases false positive risk in high-dimensional data.",
+                "fix": "Apply FDR correction (e.g., Benjamini-Hochberg) to control multiple comparisons."
+            })
+        structured = {
+            "analysis": {
+                "confidence": confidence,
+                "flags": flags,
+                "interpretations": interpretations,
+                "recommendations": recommendations,
+            }
+        }
+        os.makedirs(os.path.dirname(json_path) if os.path.dirname(json_path) else ".", exist_ok=True)
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(structured, f)
+
     return report_text
 def main():
     run_audit()
