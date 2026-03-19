@@ -409,3 +409,17 @@ tbody tr:hover td { background: var(--bg-panel); color: var(--text); }
   .metrics-row { grid-template-columns: 1fr; }
   .footer { flex-direction: column; gap: 12px; text-align: center; }
 }
+
+@media (max-width: 960px) {
+  .steps-grid[style] { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 640px) {
+  .steps-grid[style] { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 960px) {
+  .steps-grid[style] { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 640px) {
+  .steps-grid[style] { grid-template-columns: 1fr !important; }
+}
