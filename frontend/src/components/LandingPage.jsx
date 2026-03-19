@@ -19,7 +19,7 @@ function FeatureVideo({ src, poster, fallback }) {
         <div className="feature-panel-dot" />
         <div className="feature-panel-dot" />
       </div>
-      <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "var(--bg)", overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", aspectRatio: "4/3", background: "var(--bg)", overflow: "hidden" }}>
         <video
           ref={videoRef}
           src={src}
@@ -163,7 +163,7 @@ function AiAnalysisFallback() {
   return (
     <>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.08em", marginBottom: 10, textTransform: "uppercase" }}>
-        AI-POWERED ANALYSIS · LLAMA 3.3 70B
+        AI-POWERED ANALYSIS · GROQ
       </div>
       <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.8 }}>
         <div style={{ marginBottom: 12 }}>
@@ -181,7 +181,7 @@ function AiAnalysisFallback() {
       </div>
       <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--green)", background: "var(--green-subtle)", border: "1px solid rgba(74,222,128,0.15)", padding: "3px 9px", borderRadius: 99 }}>AI ● online</span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", background: "var(--bg-panel)", border: "1px solid var(--border)", padding: "3px 9px", borderRadius: 99 }}>Llama 3.3 70B · free</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", background: "var(--bg-panel)", border: "1px solid var(--border)", padding: "3px 9px", borderRadius: 99 }}>Groq · free</span>
       </div>
     </>
   );
@@ -276,7 +276,7 @@ export default function LandingPage({ onLaunch, onDemo }) {
             <div className="step-num">03</div>
             <span className="step-icon">🤖</span>
             <div className="step-title">Get AI insights</div>
-            <p className="step-desc">Ask any question about your data. Llama 3.3 70B analyzes patterns, flags outliers, and suggests next steps.</p>
+            <p className="step-desc">Ask any question about your data. Groq analyzes patterns, flags outliers, and suggests next steps.</p>
           </div>
           <div className="step-card">
             <div className="step-num">04</div>
@@ -352,7 +352,7 @@ export default function LandingPage({ onLaunch, onDemo }) {
           <div className="section-label">AI analysis</div>
           <h2 className="section-title">Ask anything about your metabolite data.</h2>
           <p className="section-sub">
-            Powered by Llama 3.3 70B. Ask about key patterns, biomarker candidates, batch effects, statistical concerns, or next steps. The AI reads your actual data — not a summary.
+            Powered by Groq. Ask about key patterns, biomarker candidates, batch effects, statistical concerns, or next steps. The AI reads your actual data — not a summary.
           </p>
           <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8 }}>
             {[
