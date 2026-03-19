@@ -1,49 +1,58 @@
 import { useState } from "react";
 
-
-function normalizeAiAnalysis(raw) {
-  if (!raw || typeof raw !== "string") return raw;
-
-  const trimmed = raw.trim();
-
-  if (trimmed.startsWith("event: complete")) {
-    const match = trimmed.match(/data:\s*(.+)$/s);
-    if (match && match[1]) {
-      try {
-        const parsed = JSON.parse(match[1]);
-
-        if (Array.isArray(parsed) && parsed.length > 1 && Array.isArray(parsed[1])) {
-          const chat = parsed[1];
-          const last = chat[chat.length - 1];
-
-          if (Array.isArray(last) && last.length > 1 && typeof last[1] === "string") {
-            return last[1];
-          }
-        }
-      } catch (e) {
-        return trimmed;
-      }
-    }
-  }
-
-  return raw;
-}
-
-
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-function ScoreBar({ score }) {
+function ScoreBar({ score, label, color }) {
   const cls = score >= 70 ? "high" : score >= 45 ? "med" : "low";
+  const resolvedColor = color || (score >= 70 ? "var(--green)" : score >= 45 ? "var(--amber)" : "var(--red)");
   return (
     <div className="score-display">
       <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span className={`score-num ${cls}`}>{score}</span>
+        <span className={`score-num ${cls}`} style={color ? { color } : {}}>{score}</span>
         <span className="score-denom">/100</span>
       </div>
       <div className="score-bar-track">
-        <div className={`score-bar-fill ${cls}`} style={{ width: `${score}%` }} />
+        <div className={`score-bar-fill ${cls}`} style={{ width: `${score}%`, background: color || undefined }} />
       </div>
-      <div className="score-label-text">Confidence Score</div>
+      <div className="score-label-text">{label || "Confidence Score"}</div>
+    </div>
+  );
+}
+
+function DualScore({ score, aiScore, aiReason }) {
+  if (aiScore === null || aiScore === undefined) {
+    return <ScoreBar score={score} />;
+  }
+
+  const diff = aiScore - score;
+  const diffLabel = diff > 0 ? "+" + diff : String(diff);
+  const diffColor = diff > 0 ? "var(--green)" : diff < 0 ? "var(--red)" : "var(--text-dim)";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <div style={{ textAlign: "right" }}>
+          <ScoreBar score={score} label="Automated score" />
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <ScoreBar score={aiScore} label="AI-adjusted score" />
+        </div>
+      </div>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        background: "var(--bg-panel)", border: "1px solid var(--border)",
+        borderRadius: 8, padding: "8px 12px", maxWidth: 360,
+      }}>
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 500,
+          color: diffColor, flexShrink: 0,
+        }}>
+          {diffLabel} pts
+        </span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
+          {aiReason}
+        </span>
+      </div>
     </div>
   );
 }
@@ -171,7 +180,7 @@ function LambdaAnalysis({ file, context }) {
 
     const isUp = await checkLambda();
     if (!isUp) {
-      setError("AI analysis is ready — powered by OpenRouter");
+      setError("AI analysis unavailable. Please try again.");
       setLoading(false);
       return;
     }
@@ -187,10 +196,8 @@ function LambdaAnalysis({ file, context }) {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || `Server error ${res.status}`);
-      }
-      setAnalysis(normalizeAiAnalysis(data.analysis));
+      if (!res.ok) throw new Error(data.detail || `Server error ${res.status}`);
+      setAnalysis(data.analysis);
     } catch (e) {
       setError(e.message || "Analysis failed.");
     }
@@ -200,9 +207,9 @@ function LambdaAnalysis({ file, context }) {
   return (
     <div>
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-label">AI-Powered Analysis · LAMBDA + Ollama</div>
+        <div className="card-label">AI-Powered Analysis · Llama 3.3 70B</div>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 18, lineHeight: 1.7 }}>
-          Ask any question about your metabolite data. LAMBDA will write and run Python code automatically to analyze it using your local AI model — no API keys, no cost, completely private.
+          Ask any question about your metabolite data. The AI will analyze it and provide expert-level insights.
         </p>
 
         <div style={{ marginBottom: 14 }}>
@@ -214,17 +221,9 @@ function LambdaAnalysis({ file, context }) {
             onChange={e => setQuestion(e.target.value)}
             rows={3}
             style={{
-              width: "100%",
-              background: "var(--bg-panel)",
-              border: "1px solid var(--border)",
-              borderRadius: 10,
-              color: "var(--text)",
-              fontFamily: "var(--font-sans)",
-              fontSize: 13,
-              padding: "10px 14px",
-              outline: "none",
-              resize: "vertical",
-              lineHeight: 1.6,
+              width: "100%", background: "var(--bg-panel)", border: "1px solid var(--border)",
+              borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-sans)",
+              fontSize: 13, padding: "10px 14px", outline: "none", resize: "vertical", lineHeight: 1.6,
             }}
           />
         </div>
@@ -236,50 +235,29 @@ function LambdaAnalysis({ file, context }) {
             disabled={loading}
             style={{ flex: "none", width: "auto", padding: "11px 28px" }}
           >
-            {loading ? (
-              <>
-                <div className="spinner" />
-                Analyzing with LAMBDA…
-              </>
-            ) : (
-              "▶ Run AI Analysis"
-            )}
+            {loading ? (<><div className="spinner" />Analyzing…</>) : "▶ Run AI Analysis"}
           </button>
-
           {lambdaStatus && (
             <span style={{
               fontFamily: "var(--font-mono)", fontSize: 11,
-              color: lambdaStatus === "ok" ? "var(--green)" : "var(--red)",
-              background: lambdaStatus === "ok" ? "var(--green-subtle)" : "var(--red-subtle)",
-              border: `1px solid ${lambdaStatus === "ok" ? "rgba(74,222,128,0.15)" : "rgba(248,113,113,0.15)"}`,
+              color: "var(--green)", background: "var(--green-subtle)",
+              border: "1px solid rgba(74,222,128,0.15)",
               padding: "4px 10px", borderRadius: 99,
             }}>
-              AI {lambdaStatus === "ok" ? "● online" : "● offline"}
+              AI ● online
             </span>
           )}
         </div>
 
-        {error && (
-          <div className="error-box" style={{ marginTop: 14 }}>
-            ⚠ {error}
-            {error.includes("not running") && (
-              <div style={{ marginTop: 8, opacity: 0.8 }}>
-                In a terminal, navigate to your LAMBDA folder and run:<br />
-                <code style={{ background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: 4, fontSize: 11 }}>
-                  conda activate lambda && python lambda_app.py --config config_ollama.yaml
-                </code>
-              </div>
-            )}
-          </div>
-        )}
+        {error && <div className="error-box" style={{ marginTop: 14 }}>⚠ {error}</div>}
       </div>
 
       {loading && (
         <div className="card" style={{ textAlign: "center", padding: "40px 24px" }}>
           <div className="spinner" style={{ width: 24, height: 24, margin: "0 auto 16px", borderWidth: 2 }} />
-          <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>LAMBDA is analyzing your data…</div>
+          <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>Analyzing your data…</div>
           <div style={{ color: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)" }}>
-            The local AI model is writing and running Python code. This may take 30–90 seconds.
+            Llama 3.3 70B is processing your dataset. This may take 15–40 seconds.
           </div>
         </div>
       )}
@@ -287,15 +265,9 @@ function LambdaAnalysis({ file, context }) {
       {analysis && !loading && (
         <div className="card">
           <div className="card-label">AI Analysis Result</div>
-          <div style={{
-            fontSize: 14,
-            lineHeight: 1.85,
-            color: "var(--text-muted)",
-            whiteSpace: "pre-wrap",
-            fontFamily: "var(--font-sans)",
-          }}>
+          <div style={{ fontSize: 14, lineHeight: 1.85, color: "var(--text-muted)", whiteSpace: "pre-wrap", fontFamily: "var(--font-sans)" }}>
             {analysis.split("\n").map((line, i) => {
-              if (line.startsWith("# ")) return <h2 key={i} style={{ fontFamily: "var(--font-serif)", fontSize: 20, color: "var(--text)", fontWeight: 400, margin: "20px 0 8px", letterSpacing: "-0.01em" }}>{line.slice(2)}</h2>;
+              if (line.startsWith("# ")) return <h2 key={i} style={{ fontFamily: "var(--font-serif)", fontSize: 20, color: "var(--text)", fontWeight: 400, margin: "20px 0 8px" }}>{line.slice(2)}</h2>;
               if (line.startsWith("## ")) return <h3 key={i} style={{ fontFamily: "var(--font-serif)", fontSize: 16, color: "var(--text)", fontWeight: 400, margin: "16px 0 6px" }}>{line.slice(3)}</h3>;
               if (line.startsWith("**") && line.endsWith("**")) return <strong key={i} style={{ color: "var(--text)", display: "block", marginTop: 8 }}>{line.slice(2, -2)}</strong>;
               if (line.startsWith("- ") || line.startsWith("• ")) return (
@@ -308,13 +280,12 @@ function LambdaAnalysis({ file, context }) {
               return <div key={i}>{line}</div>;
             })}
           </div>
-
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
             <button className="btn-dl" onClick={() => {
               const blob = new Blob([analysis], { type: "text/plain" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
-              a.href = url; a.download = "lambda_analysis.txt"; a.click();
+              a.href = url; a.download = "ai_analysis.txt"; a.click();
               URL.revokeObjectURL(url);
             }}>↓ Download analysis</button>
             <button className="btn-dl" onClick={() => { setAnalysis(null); setError(null); }}>← Ask another question</button>
@@ -325,10 +296,9 @@ function LambdaAnalysis({ file, context }) {
       {!analysis && !loading && !error && (
         <div className="card" style={{ border: "1px dashed var(--border)", background: "transparent", textAlign: "center", padding: "40px 24px" }}>
           <div style={{ fontSize: 28, marginBottom: 12 }}>🤖</div>
-          <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>Your local AI is ready</div>
+          <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>Llama 3.3 70B ready</div>
           <div style={{ color: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)", lineHeight: 1.8 }}>
-            Ask any question about your data above.<br />
-            LAMBDA will write Python code and run it locally — no data leaves your machine.
+            Ask any question about your data above.
           </div>
         </div>
       )}
@@ -346,15 +316,12 @@ function LambdaAnalysis({ file, context }) {
             "Identify potential biomarkers and rank them by importance",
             "Check for batch effects and suggest correction methods",
           ].map((q, i) => (
-            <button
-              key={i}
-              onClick={() => setQuestion(q)}
-              style={{
-                background: "var(--bg-raised)", border: "1px solid var(--border)",
-                borderRadius: 99, padding: "6px 14px", fontSize: 12,
-                color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-sans)",
-                transition: "all 0.15s",
-              }}
+            <button key={i} onClick={() => setQuestion(q)} style={{
+              background: "var(--bg-raised)", border: "1px solid var(--border)",
+              borderRadius: 99, padding: "6px 14px", fontSize: 12,
+              color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-sans)",
+              transition: "all 0.15s",
+            }}
               onMouseOver={e => { e.target.style.borderColor = "var(--border-hi)"; e.target.style.color = "var(--text)"; }}
               onMouseOut={e => { e.target.style.borderColor = "var(--border)"; e.target.style.color = "var(--text-muted)"; }}
             >
@@ -377,7 +344,7 @@ function downloadText(content, filename, mime) {
 
 export default function AuditResults({ results, file, onReset, isDemo, context }) {
   const [tab, setTab] = useState("summary");
-  const { overview, schema, report_md, report_json, histogram } = results;
+  const { overview, schema, report_md, report_json, histogram, ai_score, ai_score_reason } = results;
   const analysis = report_json?.analysis || {};
   const score = analysis.confidence ?? null;
   const flags = analysis.flags || [];
@@ -400,7 +367,9 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
           <h1 className="results-title">Validity Report</h1>
           <div className="results-filename">{overview?.filename}</div>
         </div>
-        {score !== null && <ScoreBar score={score} />}
+        {score !== null && (
+          <DualScore score={score} aiScore={ai_score} aiReason={ai_score_reason} />
+        )}
       </div>
 
       {/* Metrics */}
@@ -518,7 +487,6 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
         <LambdaAnalysis file={file} context={context} />
       )}
 
-      {/* Bottom CTA */}
       <div style={{ marginTop: 48, textAlign: "center" }}>
         <button className="btn-primary" onClick={onReset}>
           {isDemo ? "Run your own audit →" : "← Run another audit"}
