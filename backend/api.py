@@ -186,7 +186,7 @@ async def lambda_analyze(
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "mistralai/mistral-7b-instruct:free",
+                        "model": "google/gemma-3-4b-it:free",
                         "messages": [{"role": "user", "content": prompt}],
                     },
                 )
