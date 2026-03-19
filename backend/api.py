@@ -27,27 +27,40 @@ app.add_middleware(
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OLLAMA_URL = "http://localhost:11434"
-AI_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+FREE_MODELS = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemma-3-27b-it:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "google/gemma-3-12b-it:free",
+]
 
 
 async def call_ai(prompt: str, timeout: float = 60.0) -> str:
-    """Call OpenRouter (production) or Ollama (local) and return text response."""
+    """Call OpenRouter with automatic fallback across free models, or Ollama locally."""
     async with httpx.AsyncClient(timeout=timeout) as client:
         if OPENROUTER_API_KEY:
-            response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": "Bearer " + OPENROUTER_API_KEY,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": AI_MODEL,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-            )
-            if response.status_code != 200:
+            last_error = ""
+            for model in FREE_MODELS:
+                response = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                )
+                if response.status_code == 200:
+                    return response.json()["choices"][0]["message"]["content"]
+                # 429 = rate limited, try next model
+                if response.status_code == 429:
+                    last_error = model + " rate limited"
+                    continue
+                # Any other error, raise immediately
                 raise HTTPException(502, "OpenRouter error: " + response.text[:300])
-            return response.json()["choices"][0]["message"]["content"]
+            raise HTTPException(429, "All free models are rate limited. Please try again in a minute.")
         else:
             response = await client.post(
                 OLLAMA_URL + "/api/generate",
