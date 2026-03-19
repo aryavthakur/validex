@@ -318,7 +318,7 @@ export default function LandingPage({ onLaunch, onDemo }) {
         </div>
       </div>
 
-      {/* FEATURE: AI CONFIDENCE SCORING — screenshot (drop demo-ai-score.jpg into public/) */}
+      {/* FEATURE: AI CONFIDENCE SCORING — screenshot (drop demo-ai-score.mp4 into public/) */}
       <div className="feature-split reverse">
         <div className="feature-text">
           <div className="section-label">AI confidence scoring</div>
@@ -338,10 +338,10 @@ export default function LandingPage({ onLaunch, onDemo }) {
             ))}
           </div>
         </div>
-        {/* Screenshot: drop demo-ai-score.jpg (or .png) into public/ */}
-        <FeatureScreenshot
-          src="/demo-ai-score.jpg"
-          alt="AI confidence scoring screenshot"
+        {/* Screenshot: drop demo-ai-score.mp4 (or .png) into public/ */}
+        <FeatureVideo
+          src="/demo-ai-score.mp4"
+          
           fallback={<AiScoreFallback />}
         />
       </div>
@@ -371,7 +371,7 @@ export default function LandingPage({ onLaunch, onDemo }) {
         {/* Video: drop demo-ai-analysis.mp4 into public/ */}
         <FeatureVideo
           src="/demo-ai-analysis.mp4"
-          poster="/demo-ai-analysis-poster.jpg"
+          
           fallback={<AiAnalysisFallback />}
         />
       </div>
