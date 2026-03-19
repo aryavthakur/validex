@@ -186,7 +186,7 @@ async def lambda_analyze(
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "meta-llama/llama-3.2-3b-instruct:free",
+                        "model": "mistralai/mistral-7b-instruct:free",
                         "messages": [{"role": "user", "content": prompt}],
                     },
                 )
