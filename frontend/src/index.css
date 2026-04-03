@@ -417,6 +417,47 @@ tbody tr:hover td { background: var(--bg-panel); color: var(--text); }
   .steps-grid[style] { grid-template-columns: 1fr !important; }
 }
 
+/* ── 21ST.DEV COMPONENT ANIMATIONS ──────────────────────────────────────── */
+
+/* ShimmerButton */
+@keyframes shimmer-sweep {
+  0%   { left: -75%; }
+  30%, 100% { left: 125%; }
+}
+.shimmer-btn {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--text); color: #090909; border: none;
+  padding: 13px 30px; border-radius: 99px;
+  font-family: var(--font-sans); font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+.shimmer-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.shimmer-btn:active { transform: translateY(0); opacity: 1; }
+.shimmer-btn::after {
+  content: ''; position: absolute;
+  top: -50%; left: -75%; width: 45%; height: 200%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.5), transparent);
+  transform: skewX(-20deg);
+  animation: shimmer-sweep 3.5s ease-in-out infinite;
+}
+
+/* BorderBeam */
+@keyframes border-beam { 100% { offset-distance: 100%; } }
+.border-beam::after {
+  content: ''; position: absolute; aspect-ratio: 1;
+  width: calc(var(--beam-size, 120) * 1px);
+  animation: border-beam calc(var(--beam-duration, 6) * 1s) infinite linear;
+  animation-delay: var(--beam-delay, 0s);
+  background: linear-gradient(to left, var(--beam-from, #c8b99a), var(--beam-to, #4ade80), transparent);
+  offset-anchor: 50% 50%;
+  offset-path: rect(0 auto auto 0 round var(--beam-radius, 12px));
+}
+
+/* Step progress bar */
+@keyframes step-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
 @media (max-width: 960px) {
   .steps-grid[style] { grid-template-columns: repeat(2, 1fr) !important; }
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { BorderBeam } from "./ui/BorderBeam";
 
 export default function UploadZone({ onFileAccepted }) {
   const [dragging, setDragging] = useState(false);
@@ -16,12 +17,20 @@ export default function UploadZone({ onFileAccepted }) {
       <p className="upload-sub">Validex will detect your statistical schema and run a full validity audit.</p>
       <div
         className={`dropzone${dragging ? " drag-over" : ""}`}
+        style={{ position: "relative" }}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
         onClick={() => inputRef.current?.click()}
       >
         <input ref={inputRef} type="file" accept=".csv" onChange={e => handleFile(e.target.files?.[0])} style={{ display: "none" }} />
+        <BorderBeam
+          size={160}
+          duration={dragging ? 3 : 6}
+          colorFrom={dragging ? "#4ade80" : "#c8b99a"}
+          colorTo={dragging ? "#60a5fa" : "#4ade80"}
+          borderRadius="16px"
+        />
         <div className="dropzone-icon">📊</div>
         <div className="dropzone-title">Drop your CSV here</div>
         <div className="dropzone-sub">or click to browse files</div>

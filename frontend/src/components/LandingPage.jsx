@@ -1,4 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShimmerButton } from "./ui/ShimmerButton";
 
 // ── REUSABLE MEDIA COMPONENTS ────────────────────────────────────────────────
 
@@ -224,6 +226,37 @@ function CleanDataFallback() {
 
 // ── LANDING PAGE ─────────────────────────────────────────────────────────────
 
+function AnimatedHeroTitle() {
+  const words = useMemo(() => ["publication-ready", "validated", "audit-grade", "AI-scored", "reproducible"], []);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setIndex(i => (i + 1) % words.length), 2400);
+    return () => clearInterval(id);
+  }, [words]);
+
+  return (
+    <h1 className="hero-title">
+      From raw data to
+      <span style={{ display: "block", position: "relative", height: "1.2em", overflow: "hidden" }}>
+        <AnimatePresence mode="wait">
+          <motion.em
+            key={words[index]}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ type: "spring", stiffness: 120, damping: 18 }}
+            style={{ display: "block" }}
+          >
+            {words[index]}
+          </motion.em>
+        </AnimatePresence>
+      </span>
+      <span style={{ fontSize: "0.7em", fontStyle: "normal", color: "var(--text-muted)" }}>in seconds.</span>
+    </h1>
+  );
+}
+
 export default function LandingPage({ onLaunch, onDemo }) {
   return (
     <div className="landing">
@@ -233,15 +266,12 @@ export default function LandingPage({ onLaunch, onDemo }) {
           <span className="hero-eyebrow-dot" />
           Metabolomics validity auditing · AI-powered
         </div>
-        <h1 className="hero-title">
-          From raw data to<br />
-          <em>publication-ready</em> in seconds.
-        </h1>
+        <AnimatedHeroTitle />
         <p className="hero-sub">
           Upload a metabolomics CSV. Validex audits your statistical completeness, flags issues, scores confidence with AI, and returns a cleaned dataset — all in one step.
         </p>
         <div className="hero-cta">
-          <button className="btn-primary" onClick={onLaunch}>Run your first audit →</button>
+          <ShimmerButton onClick={onLaunch}>Run your first audit →</ShimmerButton>
           <button className="btn-secondary" onClick={onDemo}>See an example report</button>
         </div>
         <VideoShowcase />
