@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import LandingPage from "./components/LandingPage";
+import { AnimatedBackground } from "./components/ui/background-paths";
 import UploadZone from "./components/UploadZone";
 import ContextForm from "./components/ContextForm";
 import AuditResults from "./components/AuditResults";
@@ -70,6 +71,7 @@ export default function App() {
   if (view === "landing") {
     return (
       <>
+        <AnimatedBackground />
         <Nav onLaunch={() => setView("upload")} />
         <LandingPage onLaunch={() => setView("upload")} onDemo={handleDemo} />
       </>
@@ -77,7 +79,8 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ position: "relative", zIndex: 1 }}>
+      <AnimatedBackground />
       <Nav
         onLaunch={() => setView("upload")}
         onBack={() => setView("landing")}
