@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { BackgroundPaths } from "./ui/background-paths";
 
 // ── REUSABLE MEDIA COMPONENTS ────────────────────────────────────────────────
 
@@ -228,8 +229,14 @@ export default function LandingPage({ onLaunch, onDemo }) {
   return (
     <div className="landing">
 
-      {/* HERO */}
-      <section className="hero">
+      {/* HERO — animated background paths */}
+      <BackgroundPaths
+        title="Validex"
+        onAction={onLaunch}
+        actionLabel="Run your first audit"
+      />
+
+      <section className="hero" style={{ paddingTop: 80 }}>
         <div className="hero-eyebrow">
           <span className="hero-eyebrow-dot" />
           Metabolomics validity auditing · AI-powered
