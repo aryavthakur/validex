@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import StatCard from "./ui/StatCard";
+import { ScoreWaterfall } from "./ui/ScoreWaterfall";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -651,6 +652,9 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
       {/* SUMMARY */}
       {tab === "summary" && (
         <div className="results-grid">
+          <div className="card">
+            <ScoreWaterfall results={results} />
+          </div>
           <div className="card">
             <div className="card-label">Flags</div>
             <FlagCard flags={flags} />
