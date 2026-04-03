@@ -458,6 +458,17 @@ tbody tr:hover td { background: var(--bg-panel); color: var(--text); }
 /* Step progress bar */
 @keyframes step-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* Meteors */
+@keyframes meteor {
+  0%   { transform: rotate(215deg) translateX(0); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: rotate(215deg) translateX(-600px); opacity: 0; }
+}
+.animate-meteor { animation: meteor linear infinite; }
+
+/* TypingAnimation cursor */
+@keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
 @media (max-width: 960px) {
   .steps-grid[style] { grid-template-columns: repeat(2, 1fr) !important; }
 }

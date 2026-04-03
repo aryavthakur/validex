@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
+import { NumberTicker } from "./NumberTicker";
 
+// Accept either a numeric value (uses NumberTicker) or a string (renders as-is)
 export default function StatCard({ value, label, warn = false }) {
+  const isNumeric = typeof value === "number";
   const glowColor = warn ? "rgba(245,158,11,0.25)" : "rgba(255,255,255,0.12)";
   const textGradient = warn
     ? "linear-gradient(to right, #fcd34d, #f59e0b, #fcd34d)"
@@ -91,7 +94,9 @@ export default function StatCard({ value, label, warn = false }) {
           }}
           transition={{ duration: 4, repeat: Infinity }}
         >
-          {value}
+          {isNumeric
+            ? <NumberTicker value={value} />
+            : value}
         </motion.div>
 
         {/* Label */}

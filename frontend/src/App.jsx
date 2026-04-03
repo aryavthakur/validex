@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Analytics } from "@vercel/analytics/react";
 import LandingPage from "./components/LandingPage";
@@ -7,6 +7,8 @@ import UploadZone from "./components/UploadZone";
 import ContextForm from "./components/ContextForm";
 import AuditResults from "./components/AuditResults";
 import DataPreview from "./components/DataPreview";
+import { Meteors } from "./components/ui/Meteors";
+import { TypingAnimation } from "./components/ui/TypingAnimation";
 import { DEMO_RESULTS } from "./demoData";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -162,7 +164,7 @@ export default function App() {
       <StepBar view={view} />
       <main className="app-main" style={{ paddingTop: 92 }}>
         {view === "upload" && <UploadZone onFileAccepted={handleFileAccepted} />}
-        {(view === "context" || view === "running") && file && (
+        {view === "context" && file && (
           <div className="context-layout">
             <div><DataPreview file={file} /></div>
             <div>
@@ -170,12 +172,13 @@ export default function App() {
                 context={context}
                 onChange={setContext}
                 onRun={handleRunAudit}
-                running={view === "running"}
+                running={false}
                 error={error}
               />
             </div>
           </div>
         )}
+        {view === "running" && <RunningView file={file} />}
         {view === "results" && results && (
           <AuditResults
             results={results}
@@ -186,6 +189,102 @@ export default function App() {
           />
         )}
       </main>
+    </div>
+  );
+}
+
+const AUDIT_STEPS = [
+  "Parsing data matrix…",
+  "Checking sample integrity…",
+  "Validating normalization…",
+  "Scoring statistical design…",
+  "Evaluating batch effects…",
+  "Running flag checks…",
+  "Generating audit report…",
+];
+
+function RunningView({ file }) {
+  const [stepIdx, setStepIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setStepIdx((i) => (i + 1) % AUDIT_STEPS.length);
+    }, 2200);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div style={{
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "60vh",
+      overflow: "hidden",
+      borderRadius: 18,
+      margin: "0 auto",
+      maxWidth: 560,
+    }}>
+      <Meteors number={18} color="rgba(200,185,154,0.5)" />
+
+      {/* Spinner ring */}
+      <motion.div
+        style={{
+          width: 72, height: 72,
+          borderRadius: "50%",
+          border: "2px solid rgba(255,255,255,0.07)",
+          borderTop: "2px solid var(--accent-warm)",
+          marginBottom: 28,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
+      />
+
+      <div style={{
+        fontFamily: "var(--font-serif)",
+        fontSize: 22,
+        color: "var(--text)",
+        marginBottom: 10,
+        letterSpacing: "-0.01em",
+      }}>
+        Auditing
+        {file?.name && (
+          <span style={{ color: "var(--accent-warm)", marginLeft: 8 }}>{file.name}</span>
+        )}
+      </div>
+
+      <TypingAnimation
+        key={stepIdx}
+        text={AUDIT_STEPS[stepIdx]}
+        duration={38}
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 13,
+          color: "var(--text-dim)",
+          letterSpacing: "0.06em",
+          minHeight: 22,
+        }}
+      />
+
+      {/* Step dots */}
+      <div style={{ display: "flex", gap: 6, marginTop: 32 }}>
+        {AUDIT_STEPS.map((_, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              background: i === stepIdx
+                ? "var(--accent-warm)"
+                : i < stepIdx
+                  ? "rgba(200,185,154,0.4)"
+                  : "rgba(255,255,255,0.1)",
+              width: i === stepIdx ? 20 : 6,
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            style={{ height: 6, borderRadius: 99 }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

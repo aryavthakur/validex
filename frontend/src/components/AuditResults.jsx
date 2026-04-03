@@ -66,14 +66,20 @@ function FlagCard({ flags }) {
   return (
     <div>
       {flags.map((f, i) => (
-        <div className="flag-item" key={i}>
+        <motion.div
+          className="flag-item"
+          key={i}
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 350, damping: 40, delay: i * 0.07 }}
+        >
           <span className={`flag-sev ${f.severity}`}>{f.severity}</span>
           <div className="flag-body">
             <div className="flag-title">{f.title}</div>
             <div className="flag-why">{f.why}</div>
             {f.fix && <div className="flag-fix">Fix: {f.fix}</div>}
           </div>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -581,11 +587,11 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
         )}
       </div>
 
-      {/* Metrics — animated stat cards */}
+      {/* Metrics — animated stat cards with NumberTicker */}
       <div className="metrics-row">
-        <StatCard value={overview?.n_rows?.toLocaleString() ?? "—"} label="Features" />
+        <StatCard value={overview?.n_rows ?? "—"} label="Features" />
         <StatCard value={overview?.n_cols ?? "—"} label="Columns" />
-        <StatCard value={overview?.missing_cells?.toLocaleString() ?? "—"} label="Missing cells" warn={(overview?.missing_cells ?? 0) > 0} />
+        <StatCard value={overview?.missing_cells ?? "—"} label="Missing cells" warn={(overview?.missing_cells ?? 0) > 0} />
       </div>
 
       {/* Tabs — Feature108 style */}
