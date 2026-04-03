@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Analytics } from "@vercel/analytics/react";
 import LandingPage from "./components/LandingPage";
@@ -13,6 +13,17 @@ import { Ripple } from "./components/ui/Ripple";
 import { DEMO_RESULTS } from "./demoData";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// ── SHARE URL ENCODING ────────────────────────────────────────────────────────
+export function encodeSharePayload(results, context) {
+  const payload = JSON.stringify({ results, context });
+  return btoa(encodeURIComponent(payload));
+}
+
+export function decodeSharePayload(encoded) {
+  const payload = decodeURIComponent(atob(encoded));
+  return JSON.parse(payload);
+}
 
 const STEPS = ["Upload", "Context", "Audit", "Results"];
 const VIEW_TO_STEP = { upload: 0, context: 1, running: 2, results: 3 };
@@ -98,6 +109,24 @@ export default function App() {
   });
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+
+  // Load shared report from URL hash on mount
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith("#r=")) {
+      try {
+        const { results: sharedResults, context: sharedContext } = decodeSharePayload(hash.slice(3));
+        setResults(sharedResults);
+        setContext(prev => ({ ...prev, ...sharedContext }));
+        setFile({ name: sharedResults.overview?.filename || "shared-report.csv" });
+        setView("results");
+        // Clean hash from URL without triggering a reload
+        window.history.replaceState(null, "", window.location.pathname);
+      } catch {
+        // Malformed share URL — ignore, stay on landing
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileAccepted = useCallback((f) => {
     setFile(f);

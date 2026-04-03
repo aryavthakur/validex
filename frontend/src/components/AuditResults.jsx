@@ -2,6 +2,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import StatCard from "./ui/StatCard";
 import { ScoreWaterfall } from "./ui/ScoreWaterfall";
+import { PowerAnalysis } from "./ui/PowerAnalysis";
+import { PublicationChecklist } from "./ui/PublicationChecklist";
+import { encodeSharePayload } from "../App";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -550,6 +553,7 @@ function downloadText(content, filename, mime) {
 
 export default function AuditResults({ results, file, onReset, isDemo, context }) {
   const [tab, setTab] = useState("summary");
+  const [shareState, setShareState] = useState(null); // null | "copied"
   const { overview, schema, report_md, report_json, histogram, ai_score, ai_score_reason } = results;
   const analysis = report_json?.analysis || {};
   const score = analysis.confidence ?? null;
@@ -557,22 +561,41 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
   const interpretations = analysis.interpretations || [];
   const recommendations = analysis.recommendations || [];
 
+  const handleShare = () => {
+    try {
+      const encoded = encodeSharePayload(results, context);
+      const url = `${window.location.origin}${window.location.pathname}#r=${encoded}`;
+      navigator.clipboard.writeText(url).then(() => {
+        setShareState("copied");
+        setTimeout(() => setShareState(null), 2500);
+      });
+    } catch {
+      // Fallback: update hash so user can copy manually
+      const encoded = encodeSharePayload(results, context);
+      window.location.hash = `r=${encoded}`;
+    }
+  };
+
   const TAB_ICONS = {
-    summary: "◈",
-    schema: "⌥",
-    report: "☰",
-    data: "⊞",
-    ai: "◎",
-    clean: "⟳",
+    summary:   "◈",
+    power:     "⚡",
+    checklist: "✓",
+    schema:    "⌥",
+    report:    "☰",
+    data:      "⊞",
+    ai:        "◎",
+    clean:     "⟳",
   };
 
   const TAB_LABELS = {
-    summary: "Summary",
-    schema: "Schema Map",
-    report: "Full Report",
-    data: "Data",
-    ai: "AI Analysis",
-    clean: "Clean Data",
+    summary:   "Summary",
+    power:     "Power",
+    checklist: "Pub. Checklist",
+    schema:    "Schema Map",
+    report:    "Full Report",
+    data:      "Data",
+    ai:        "AI Analysis",
+    clean:     "Clean Data",
   };
 
   return (
@@ -582,6 +605,22 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
         <div>
           <h1 className="results-title">Validity Report</h1>
           <div className="results-filename">{overview?.filename}</div>
+          <button
+            onClick={handleShare}
+            style={{
+              marginTop: 8,
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "5px 12px", borderRadius: 99,
+              border: "1px solid var(--border-mid)",
+              background: shareState === "copied" ? "rgba(74,222,128,0.1)" : "var(--bg-raised)",
+              color: shareState === "copied" ? "var(--green)" : "var(--text-muted)",
+              fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em",
+              cursor: "pointer", transition: "all 0.2s",
+            }}
+          >
+            <span style={{ fontSize: 11 }}>{shareState === "copied" ? "✓" : "↗"}</span>
+            {shareState === "copied" ? "Link copied!" : "Share report"}
+          </button>
         </div>
         {score !== null && (
           <DualScore score={score} aiScore={ai_score} aiReason={ai_score_reason} />
@@ -673,6 +712,24 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
               <Interpretations items={recommendations} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* POWER ANALYSIS */}
+      {tab === "power" && (
+        <div className="results-grid">
+          <div className="card results-wide">
+            <PowerAnalysis histogram={histogram} overview={overview} context={context} />
+          </div>
+        </div>
+      )}
+
+      {/* PUBLICATION CHECKLIST */}
+      {tab === "checklist" && (
+        <div className="results-grid">
+          <div className="card results-wide">
+            <PublicationChecklist results={results} context={context} />
+          </div>
         </div>
       )}
 
