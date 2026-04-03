@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import LandingPage from "./components/LandingPage";
 import { AnimatedBackground } from "./components/ui/background-paths";
 import UploadZone from "./components/UploadZone";
@@ -71,6 +72,7 @@ export default function App() {
   if (view === "landing") {
     return (
       <>
+        <Analytics />
         <AnimatedBackground />
         <Nav onLaunch={() => setView("upload")} />
         <LandingPage onLaunch={() => setView("upload")} onDemo={handleDemo} />
@@ -80,6 +82,7 @@ export default function App() {
 
   return (
     <div className="app-shell" style={{ position: "relative", zIndex: 1 }}>
+      <Analytics />
       <AnimatedBackground />
       <Nav
         onLaunch={() => setView("upload")}
