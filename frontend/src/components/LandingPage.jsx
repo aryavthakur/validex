@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { ShimmerButton } from "./ui/ShimmerButton";
+import { Marquee } from "./ui/Marquee";
+import { Spotlight } from "./ui/Spotlight";
 
 // ── REUSABLE MEDIA COMPONENTS ────────────────────────────────────────────────
 
@@ -123,22 +125,26 @@ function FeatureSection({ label, title, sub, extras, videoSrc, videoPoster, fall
         alignItems: "start",
         marginBottom: 52,
       }}>
-        <div>
-          <div className="section-label">{label}</div>
-          <h2 style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "clamp(2rem, 3.5vw, 3rem)",
-            fontWeight: 400,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-            color: "var(--text)",
-            margin: 0,
-          }}>{title}</h2>
-        </div>
-        <div style={{ paddingTop: 8 }}>
-          <p style={{ fontSize: 15, color: "var(--text-muted)", lineHeight: 1.75, marginBottom: extras ? 24 : 0 }}>{sub}</p>
-          {extras}
-        </div>
+        <FadeUp>
+          <div>
+            <div className="section-label">{label}</div>
+            <h2 style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "clamp(2rem, 3.5vw, 3rem)",
+              fontWeight: 400,
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+              color: "var(--text)",
+              margin: 0,
+            }}>{title}</h2>
+          </div>
+        </FadeUp>
+        <FadeUp delay={0.1}>
+          <div style={{ paddingTop: 8 }}>
+            <p style={{ fontSize: 15, color: "var(--text-muted)", lineHeight: 1.75, marginBottom: extras ? 24 : 0 }}>{sub}</p>
+            {extras}
+          </div>
+        </FadeUp>
       </div>
       {/* Full-width video */}
       <FeatureVideo src={videoSrc} poster={videoPoster} fallback={fallback} />
@@ -224,6 +230,123 @@ function CleanDataFallback() {
   );
 }
 
+// ── FADE-UP SCROLL REVEAL ────────────────────────────────────────────────────
+
+function FadeUp({ children, delay = 0, style = {} }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 22 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20, delay }}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ── MARQUEE KEYWORDS ─────────────────────────────────────────────────────────
+
+const KEYWORDS = [
+  "STATISTICAL INTEGRITY",
+  "FDR CONTROL",
+  "BATCH CORRECTION",
+  "REPRODUCIBLE SCIENCE",
+  "AI-SCORED",
+  "OUTLIER DETECTION",
+  "SCHEMA DETECTION",
+  "PUBLICATION-READY",
+];
+
+function KeywordMarquee() {
+  const item = (text, i) => (
+    <span key={i} style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 10,
+      fontFamily: "var(--font-mono)",
+      fontSize: 10,
+      letterSpacing: "0.14em",
+      textTransform: "uppercase",
+      color: "var(--text-dim)",
+      whiteSpace: "nowrap",
+      padding: "0 24px",
+    }}>
+      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--accent-warm)", display: "inline-block", flexShrink: 0 }} />
+      {text}
+    </span>
+  );
+
+  return (
+    <div style={{
+      width: "100%",
+      borderTop: "1px solid var(--border)",
+      borderBottom: "1px solid var(--border)",
+      padding: "12px 0",
+      overflow: "hidden",
+      maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+      WebkitMaskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+    }}>
+      <Marquee duration="30s" gap="0px" repeat={3} pauseOnHover>
+        {KEYWORDS.map(item)}
+      </Marquee>
+    </div>
+  );
+}
+
+// ── STATS ROW ────────────────────────────────────────────────────────────────
+
+const STATS = [
+  { value: "< 3s",  label: "Average audit time"     },
+  { value: "18+",   label: "Detection rules"         },
+  { value: "Free",  label: "Always, no login needed" },
+  { value: "AI",    label: "Groq-powered analysis"   },
+];
+
+function StatsRow() {
+  return (
+    <FadeUp delay={0.1}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 1,
+        background: "var(--border)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        overflow: "hidden",
+        maxWidth: 680,
+        margin: "0 auto",
+      }}>
+        {STATS.map((s, i) => (
+          <div key={i} style={{
+            background: "var(--bg-panel)",
+            padding: "18px 16px",
+            textAlign: "center",
+          }}>
+            <div style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: 26,
+              color: "var(--text)",
+              lineHeight: 1,
+              marginBottom: 5,
+            }}>{s.value}</div>
+            <div style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--text-dim)",
+            }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </FadeUp>
+  );
+}
+
 // ── LANDING PAGE ─────────────────────────────────────────────────────────────
 
 function AnimatedHeroTitle() {
@@ -261,8 +384,9 @@ export default function LandingPage({ onLaunch, onDemo }) {
   return (
     <div className="landing">
 
-      <section className="hero">
-        <div className="hero-eyebrow">
+      <section className="hero" style={{ position: "relative", overflow: "hidden" }}>
+        <Spotlight style={{ top: "-20%", left: "-10%" }} />
+        <div className="hero-eyebrow" style={{ position: "relative", zIndex: 1 }}>
           <span className="hero-eyebrow-dot" />
           Metabolomics validity auditing · AI-powered
         </div>
@@ -274,53 +398,55 @@ export default function LandingPage({ onLaunch, onDemo }) {
           <ShimmerButton onClick={onLaunch}>Run your first audit →</ShimmerButton>
           <button className="btn-secondary" onClick={onDemo}>See an example report</button>
         </div>
+
+        <KeywordMarquee />
+
+        <div style={{ padding: "32px 0 8px" }}>
+          <StatsRow />
+        </div>
+
         <VideoShowcase />
       </section>
 
       {/* HOW IT WORKS */}
       <section className="section">
-        <div className="section-label">How it works</div>
-        <h2 className="section-title">Four steps from upload to clean, scored report.</h2>
-        <p className="section-sub">
-          No configuration required. Validex adapts to your column naming conventions and study design automatically.
-        </p>
+        <FadeUp><div className="section-label">How it works</div></FadeUp>
+        <FadeUp delay={0.05}><h2 className="section-title">Four steps from upload to clean, scored report.</h2></FadeUp>
+        <FadeUp delay={0.1}>
+          <p className="section-sub">
+            No configuration required. Validex adapts to your column naming conventions and study design automatically.
+          </p>
+        </FadeUp>
         <div className="steps-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-          <div className="step-card">
-            <div className="step-num">01</div>
-            <span className="step-icon">📁</span>
-            <div className="step-title">Upload your CSV</div>
-            <p className="step-desc">Drag and drop any metabolomics results file. Works with untargeted and targeted exports from common platforms.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-num">02</div>
-            <span className="step-icon">⚙️</span>
-            <div className="step-title">Set study context</div>
-            <p className="step-desc">Specify your design — paired vs independent, batch effects, sample size, and notes. Context shapes what Validex flags.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-num">03</div>
-            <span className="step-icon">🤖</span>
-            <div className="step-title">Get AI insights</div>
-            <p className="step-desc">Ask any question about your data. Groq analyzes patterns, flags outliers, and suggests next steps.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-num">04</div>
-            <span className="step-icon">🧹</span>
-            <div className="step-title">Download clean data</div>
-            <p className="step-desc">Review proposed removals — duplicates, outliers, missing values — then download a cleaned CSV with your approval.</p>
-          </div>
+          {[
+            { num: "01", icon: "📁", title: "Upload your CSV", desc: "Drag and drop any metabolomics results file. Works with untargeted and targeted exports from common platforms." },
+            { num: "02", icon: "⚙️", title: "Set study context", desc: "Specify your design — paired vs independent, batch effects, sample size, and notes. Context shapes what Validex flags." },
+            { num: "03", icon: "🤖", title: "Get AI insights", desc: "Ask any question about your data. Groq analyzes patterns, flags outliers, and suggests next steps." },
+            { num: "04", icon: "🧹", title: "Download clean data", desc: "Review proposed removals — duplicates, outliers, missing values — then download a cleaned CSV with your approval." },
+          ].map((step, i) => (
+            <FadeUp key={i} delay={i * 0.08}>
+              <div className="step-card">
+                <div className="step-num">{step.num}</div>
+                <span className="step-icon">{step.icon}</span>
+                <div className="step-title">{step.title}</div>
+                <p className="step-desc">{step.desc}</p>
+              </div>
+            </FadeUp>
+          ))}
         </div>
       </section>
 
       {/* FEATURE: SCHEMA DETECTION — side by side, code mockup */}
       <div className="feature-split" style={{ borderTop: "1px solid var(--border)" }}>
-        <div className="feature-text">
-          <div className="section-label">Schema detection</div>
-          <h2 className="section-title">Finds your columns, whatever you call them.</h2>
-          <p className="section-sub">
-            Validex normalizes hundreds of column naming conventions — pval, p.val, P_Value, adjusted_p — and maps them to canonical statistical fields automatically.
-          </p>
-        </div>
+        <FadeUp>
+          <div className="feature-text">
+            <div className="section-label">Schema detection</div>
+            <h2 className="section-title">Finds your columns, whatever you call them.</h2>
+            <p className="section-sub">
+              Validex normalizes hundreds of column naming conventions — pval, p.val, P_Value, adjusted_p — and maps them to canonical statistical fields automatically.
+            </p>
+          </div>
+        </FadeUp>
         <div className="feature-panel">
           <div className="feature-panel-chrome">
             <div className="feature-panel-dot" /><div className="feature-panel-dot" /><div className="feature-panel-dot" />

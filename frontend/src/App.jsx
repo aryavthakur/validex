@@ -9,6 +9,7 @@ import AuditResults from "./components/AuditResults";
 import DataPreview from "./components/DataPreview";
 import { Meteors } from "./components/ui/Meteors";
 import { TypingAnimation } from "./components/ui/TypingAnimation";
+import { Ripple } from "./components/ui/Ripple";
 import { DEMO_RESULTS } from "./demoData";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -227,6 +228,7 @@ function RunningView({ file }) {
       maxWidth: 560,
     }}>
       <Meteors number={18} color="rgba(200,185,154,0.5)" />
+      <Ripple mainCircleSize={120} numCircles={6} />
 
       {/* Spinner ring */}
       <motion.div

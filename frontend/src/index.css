@@ -469,6 +469,35 @@ tbody tr:hover td { background: var(--bg-panel); color: var(--text); }
 /* TypingAnimation cursor */
 @keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+/* Marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-100% - var(--gap, 1rem))); }
+}
+.marquee-track { animation: marquee var(--duration, 40s) linear infinite; }
+.marquee-reverse { animation-direction: reverse; }
+.marquee-pause-hover:hover { animation-play-state: paused; }
+
+/* Ripple */
+@keyframes ripple {
+  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+.animate-ripple { animation: ripple 3.2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+/* Spotlight */
+@keyframes spotlight {
+  0%   { opacity: 0; transform: translate(-72%, -62%) rotate(20deg) scale(0.7); }
+  100% { opacity: 1; transform: translate(-50%, -40%) rotate(8deg) scale(1); }
+}
+.animate-spotlight { animation: spotlight 2.2s ease forwards; }
+
+/* Scroll-reveal fade-up (used via framer-motion, but fallback) */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 960px) {
   .steps-grid[style] { grid-template-columns: repeat(2, 1fr) !important; }
 }
