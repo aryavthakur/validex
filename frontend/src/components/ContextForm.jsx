@@ -1,16 +1,7 @@
+import { LiquidToggle, GooeyFilter } from "./ui/LiquidToggle";
+
 function Toggle({ label, sub, checked, onChange }) {
-  return (
-    <div className="toggle-row">
-      <div>
-        <div className="toggle-label">{label}</div>
-        {sub && <div className="toggle-sub">{sub}</div>}
-      </div>
-      <label className="toggle-switch">
-        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
-        <span className="toggle-track" />
-      </label>
-    </div>
-  );
+  return <LiquidToggle label={label} sub={sub} checked={checked} onChange={onChange} />;
 }
 
 function Field({ label, children }) {
@@ -27,6 +18,7 @@ export default function ContextForm({ context, onChange, onRun, running, filenam
 
   return (
     <div className="card" style={{ position: "sticky", top: 80 }}>
+      <GooeyFilter />
       <div className="card-title">Study Context</div>
 
       <Field label="Metabolomics type">

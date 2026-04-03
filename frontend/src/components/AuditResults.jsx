@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import StatCard from "./ui/StatCard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -212,41 +214,67 @@ function LambdaAnalysis({ file, context }) {
           Ask any question about your metabolite data. The AI will analyze it and provide expert-level insights.
         </p>
 
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 7 }}>
-            Your question
-          </label>
+        {/* AI Prompt Box — styled input with send button */}
+        <div style={{
+          position: "relative",
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border-mid)",
+          borderRadius: 14,
+          overflow: "hidden",
+          transition: "border-color 0.2s, box-shadow 0.2s",
+        }}
+          onFocusCapture={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.22)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255,255,255,0.04)"; }}
+          onBlurCapture={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.11)"; e.currentTarget.style.boxShadow = "none"; }}
+        >
           <textarea
             value={question}
             onChange={e => setQuestion(e.target.value)}
             rows={3}
+            placeholder="Ask anything about your metabolomics data…"
+            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAnalysis(); }}
             style={{
-              width: "100%", background: "var(--bg-panel)", border: "1px solid var(--border)",
-              borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-sans)",
-              fontSize: 13, padding: "10px 14px", outline: "none", resize: "vertical", lineHeight: 1.6,
+              width: "100%", background: "transparent", border: "none",
+              color: "var(--text)", fontFamily: "var(--font-sans)",
+              fontSize: 14, padding: "14px 16px 8px", outline: "none",
+              resize: "none", lineHeight: 1.65,
             }}
           />
-        </div>
-
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button
-            className={`btn-run${loading ? " running" : ""}`}
-            onClick={runAnalysis}
-            disabled={loading}
-            style={{ flex: "none", width: "auto", padding: "11px 28px" }}
-          >
-            {loading ? (<><div className="spinner" />Analyzing…</>) : "▶ Run AI Analysis"}
-          </button>
-          {lambdaStatus && (
-            <span style={{
-              fontFamily: "var(--font-mono)", fontSize: 11,
-              color: "var(--green)", background: "var(--green-subtle)",
-              border: "1px solid rgba(74,222,128,0.15)",
-              padding: "4px 10px", borderRadius: 99,
-            }}>
-              AI ● online
-            </span>
-          )}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 12px 12px",
+          }}>
+            {lambdaStatus ? (
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: 10,
+                color: "var(--green)", background: "var(--green-subtle)",
+                border: "1px solid rgba(74,222,128,0.15)",
+                padding: "3px 9px", borderRadius: 99, letterSpacing: "0.06em",
+              }}>
+                ● AI online
+              </span>
+            ) : (
+              <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
+                ⌘↵ to send
+              </span>
+            )}
+            <button
+              onClick={runAnalysis}
+              disabled={loading || !question.trim()}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 36, height: 36, borderRadius: 10,
+                background: loading || !question.trim() ? "var(--bg-hover)" : "var(--text)",
+                border: "none", cursor: loading || !question.trim() ? "not-allowed" : "pointer",
+                color: "#090909", transition: "all 0.15s",
+                flexShrink: 0,
+              }}
+            >
+              {loading
+                ? <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, borderColor: "var(--text-dim) transparent transparent transparent" }} />
+                : <span style={{ fontSize: 14, lineHeight: 1, color: loading || !question.trim() ? "var(--text-dim)" : "#090909" }}>↑</span>
+              }
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-box" style={{ marginTop: 14 }}>⚠ {error}</div>}
@@ -303,29 +331,31 @@ function LambdaAnalysis({ file, context }) {
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 12 }}>
-          Example questions
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 10 }}>
+          Suggestions
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {[
-            "Which metabolites are most significantly different between groups?",
-            "Run a PCA on this data and describe the main variance",
-            "Are there any outlier samples I should be concerned about?",
-            "What statistical test is most appropriate for this study design?",
-            "Identify potential biomarkers and rank them by importance",
-            "Check for batch effects and suggest correction methods",
+            { icon: "◈", text: "Which metabolites differ most between groups?" },
+            { icon: "⊙", text: "Are there outlier samples I should remove?" },
+            { icon: "⌬", text: "What statistical test fits this design?" },
+            { icon: "◎", text: "Identify potential biomarkers by importance" },
+            { icon: "⊞", text: "Run a PCA and describe main variance" },
+            { icon: "⊗", text: "Check for batch effects and suggest corrections" },
           ].map((q, i) => (
-            <button key={i} onClick={() => setQuestion(q)} style={{
+            <button key={i} onClick={() => setQuestion(q.text)} style={{
+              display: "flex", alignItems: "center", gap: 6,
               background: "var(--bg-raised)", border: "1px solid var(--border)",
-              borderRadius: 99, padding: "6px 14px", fontSize: 12,
+              borderRadius: 8, padding: "6px 12px", fontSize: 12,
               color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-sans)",
               transition: "all 0.15s",
             }}
-              onMouseOver={e => { e.target.style.borderColor = "var(--border-hi)"; e.target.style.color = "var(--text)"; }}
-              onMouseOut={e => { e.target.style.borderColor = "var(--border)"; e.target.style.color = "var(--text-muted)"; }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "var(--border-hi)"; e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--bg-hover)"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "var(--bg-raised)"; }}
             >
-              {q}
+              <span style={{ color: "var(--accent-warm)", fontSize: 10 }}>{q.icon}</span>
+              {q.text}
             </button>
           ))}
         </div>
@@ -520,13 +550,22 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
   const interpretations = analysis.interpretations || [];
   const recommendations = analysis.recommendations || [];
 
+  const TAB_ICONS = {
+    summary: "◈",
+    schema: "⌥",
+    report: "☰",
+    data: "⊞",
+    ai: "◎",
+    clean: "⟳",
+  };
+
   const TAB_LABELS = {
     summary: "Summary",
     schema: "Schema Map",
     report: "Full Report",
     data: "Data",
-    ai: "🤖 AI Analysis",
-    clean: "🧹 Clean Data",
+    ai: "AI Analysis",
+    clean: "Clean Data",
   };
 
   return (
@@ -542,27 +581,63 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
         )}
       </div>
 
-      {/* Metrics */}
+      {/* Metrics — animated stat cards */}
       <div className="metrics-row">
-        <div className="metric-card">
-          <div className="metric-label">Features</div>
-          <div className="metric-value">{overview?.n_rows?.toLocaleString() ?? "—"}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">Columns</div>
-          <div className="metric-value">{overview?.n_cols ?? "—"}</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">Missing cells</div>
-          <div className="metric-value">{overview?.missing_cells?.toLocaleString() ?? "—"}</div>
-        </div>
+        <StatCard value={overview?.n_rows?.toLocaleString() ?? "—"} label="Features" />
+        <StatCard value={overview?.n_cols ?? "—"} label="Columns" />
+        <StatCard value={overview?.missing_cells?.toLocaleString() ?? "—"} label="Missing cells" warn={(overview?.missing_cells ?? 0) > 0} />
       </div>
 
-      {/* Tabs */}
-      <div className="tabs">
+      {/* Tabs — Feature108 style */}
+      <div style={{
+        display: "flex",
+        gap: 4,
+        flexWrap: "wrap",
+        padding: "6px",
+        background: "var(--bg-raised)",
+        borderRadius: 14,
+        border: "1px solid var(--border)",
+        margin: "24px 0 0",
+      }}>
         {Object.entries(TAB_LABELS).map(([t, label]) => (
-          <button key={t} className={`tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-            {label}
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "8px 16px",
+              borderRadius: 10,
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              fontWeight: tab === t ? 500 : 400,
+              color: tab === t ? "var(--text)" : "var(--text-muted)",
+              background: "transparent",
+              transition: "all 0.18s ease",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {tab === t && (
+              <motion.div
+                layoutId="active-tab-pill"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: 10,
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-mid)",
+                  zIndex: 0,
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span style={{ position: "relative", zIndex: 1 }}>
+              {TAB_ICONS[t]} {label}
+            </span>
           </button>
         ))}
       </div>
