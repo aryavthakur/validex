@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Analytics } from "@vercel/analytics/react";
-import LandingPage from "./components/LandingPage";
+import ValidexLanding from "./components/ValidexLanding";
 import { AnimatedBackground } from "./components/ui/background-paths";
 import UploadZone from "./components/UploadZone";
 import ContextForm from "./components/ContextForm";
@@ -174,9 +174,10 @@ export default function App() {
     return (
       <>
         <Analytics />
-        <AnimatedBackground />
-        <Nav onLaunch={() => setView("upload")} />
-        <LandingPage onLaunch={() => setView("upload")} onDemo={handleDemo} />
+        <ValidexLanding
+          onLaunch={() => setView("upload")}
+          onFileAccepted={handleFileAccepted}
+        />
       </>
     );
   }
