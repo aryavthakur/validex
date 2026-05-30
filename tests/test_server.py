@@ -112,3 +112,46 @@ def test_ai_status_reports_local_ollama_without_cloud_calls(monkeypatch):
         ("health",),
         ("list_models",),
     ]
+
+
+def test_ai_status_does_not_probe_ollama_when_cli_missing(monkeypatch):
+    calls = []
+
+    class FakeOllama:
+        def __init__(self, base_url):
+            calls.append(("init", base_url))
+
+        def is_installed(self):
+            calls.append(("is_installed",))
+            return False
+
+        def health(self):
+            calls.append(("health",))
+            raise AssertionError("health should not be called when Ollama is not installed")
+
+        def list_models(self):
+            calls.append(("list_models",))
+            raise AssertionError("list_models should not be called when Ollama is not installed")
+
+    monkeypatch.setattr("validex.server.OllamaClient", FakeOllama)
+    app = create_app(config=DEFAULT_CONFIG)
+    client = TestClient(app)
+
+    response = client.get("/api/ai/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "ollama",
+        "installed": False,
+        "running": False,
+        "model": "llama3.2:3b",
+        "model_installed": False,
+        "models": [],
+        "local_only": True,
+        "cloud_ai_enabled": False,
+        "error": "Ollama is not installed.",
+    }
+    assert calls == [
+        ("init", "http://localhost:11434"),
+        ("is_installed",),
+    ]

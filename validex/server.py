@@ -84,7 +84,7 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
     @app.get("/api/ai/status")
     def ai_status():
         installed = ollama.is_installed()
-        health = ollama.health()
+        health = ollama.health() if installed else {"running": False, "error": "Ollama is not installed."}
         models: list[str] = []
         model_installed = False
         if health["running"]:

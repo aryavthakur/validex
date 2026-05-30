@@ -6,7 +6,7 @@ def _join(parts: list[str]) -> str:
 
 
 FORBIDDEN_BUNDLE_STRINGS = [
-    ["validex-6zfp.on", "ren", "der.com"],
+    ["validex", "-6zfp.on", "ren", "der.com"],
     ["ren", "der", ".com"],
     ["api.", "op", "enai"],
     ["api.", "gr", "oq"],
@@ -27,7 +27,7 @@ def _static_text() -> str:
 def test_packaged_frontend_bundle_has_no_hosted_backend_url():
     text = _static_text()
 
-    assert _join(["validex-6zfp.on", "ren", "der.com"]) not in text
+    assert _join(["validex", "-6zfp.on", "ren", "der.com"]) not in text
 
 
 def test_packaged_frontend_bundle_has_no_remote_ai_provider_urls():
