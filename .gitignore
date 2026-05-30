@@ -1,8 +1,14 @@
 node_modules/
 dist/
+build/
 .DS_Store
 *.pyc
 __pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+*.log
 .env
 .env.local
 .vite/
