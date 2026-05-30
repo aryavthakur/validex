@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Analytics } from "@vercel/analytics/react";
-import ValidexLanding from "./components/ValidexLanding";
 import { AnimatedBackground } from "./components/ui/background-paths";
 import UploadZone from "./components/UploadZone";
 import ContextForm from "./components/ContextForm";
@@ -12,7 +10,7 @@ import { TypingAnimation } from "./components/ui/TypingAnimation";
 import { Ripple } from "./components/ui/Ripple";
 import { DEMO_RESULTS } from "./demoData";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ── SHARE URL ENCODING ────────────────────────────────────────────────────────
 export function encodeSharePayload(results, context) {
@@ -93,8 +91,45 @@ function StepBar({ view }) {
   );
 }
 
+function PrivacyIndicator({ privacyStatus, aiStatus, compact = false }) {
+  const provider = privacyStatus?.provider === "ollama" ? "Ollama" : "Local";
+  const model = privacyStatus?.model || "llama3.2:3b";
+  const unavailable = aiStatus && (!aiStatus.installed || !aiStatus.running || !aiStatus.model_installed);
+  const setupMessage = !aiStatus?.installed
+    ? "Validex needs Ollama to run private local AI. Run validex again after setup completes."
+    : !aiStatus?.running
+      ? "Ollama is not running. Run validex again after setup completes."
+      : !aiStatus?.model_installed
+        ? `Ollama model ${model} is not installed. Run validex again to pull it.`
+        : null;
+  return (
+    <div style={{
+      display: "grid",
+      gap: compact ? 6 : 10,
+      padding: compact ? "10px 12px" : "14px 16px",
+      border: unavailable ? "1px solid rgba(245,158,11,0.28)" : "1px solid rgba(74,222,128,0.22)",
+      background: unavailable ? "rgba(245,158,11,0.07)" : "rgba(74,222,128,0.06)",
+      borderRadius: 8,
+      marginBottom: compact ? 12 : 18,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: unavailable ? "var(--amber)" : "var(--green)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {unavailable ? "Local AI setup needed" : "Local AI active"}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
+          AI provider: {provider}
+        </span>
+      </div>
+      <div style={{ fontSize: compact ? 12 : 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
+        Your dataset stays on this device. No cloud AI is used. Model: {model}.
+        {setupMessage && <span style={{ display: "block", marginTop: 6, color: "var(--amber)" }}>{setupMessage}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [view, setView] = useState("landing");
+  const [view, setView] = useState("upload");
   const [file, setFile] = useState(null);
   const [context, setContext] = useState({
     metabolomics_type: "untargeted",
@@ -109,6 +144,19 @@ export default function App() {
   });
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [privacyStatus, setPrivacyStatus] = useState(null);
+  const [aiStatus, setAiStatus] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/privacy/status`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPrivacyStatus(data))
+      .catch(() => setPrivacyStatus(null));
+    fetch(`${API_BASE}/api/ai/status`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setAiStatus(data))
+      .catch(() => setAiStatus(null));
+  }, []);
 
   // Load shared report from URL hash on mount
   useEffect(() => {
@@ -170,30 +218,20 @@ export default function App() {
     }
   };
 
-  if (view === "landing") {
-    return (
-      <>
-        <Analytics />
-        <ValidexLanding
-          onLaunch={() => setView("upload")}
-          onFileAccepted={handleFileAccepted}
-        />
-      </>
-    );
-  }
-
   return (
     <div className="app-shell" style={{ position: "relative", zIndex: 1 }}>
-      <Analytics />
       <AnimatedBackground />
       <Nav
         onLaunch={() => setView("upload")}
-        onBack={() => setView("landing")}
+        onBack={() => setView("upload")}
         onReset={view !== "upload" ? handleReset : null}
         isDemo={results === DEMO_RESULTS}
       />
       <StepBar view={view} />
       <main className="app-main" style={{ paddingTop: 92 }}>
+        {(view === "upload" || view === "context") && (
+          <PrivacyIndicator privacyStatus={privacyStatus} aiStatus={aiStatus} compact={view === "context"} />
+        )}
         {view === "upload" && <UploadZone onFileAccepted={handleFileAccepted} />}
         {view === "context" && file && (
           <div className="context-layout">

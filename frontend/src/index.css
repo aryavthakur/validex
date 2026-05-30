@@ -2,6 +2,30 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@font-face {
+  font-family: "Atipla";
+  src: url("/fonts/atipla/subset-AtiplaND-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atipla";
+  src: url("/fonts/atipla/subset-AtiplaND-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Fraktion Mono";
+  src: url("/fonts/fraktion/subset-PPFraktionMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg:        #090909;
   --bg-raised: #0f0f0f;
@@ -26,9 +50,9 @@
   --radius-sm: 10px;
   --radius-lg: 24px;
   --radius-xl: 32px;
-  --font-serif: 'Instrument Serif', Georgia, serif;
-  --font-sans:  'Geist', system-ui, sans-serif;
-  --font-mono:  'Geist Mono', monospace;
+  --font-serif: 'Atipla', Georgia, serif;
+  --font-sans:  'Atipla', system-ui, sans-serif;
+  --font-mono:  'PP Fraktion Mono', monospace;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 

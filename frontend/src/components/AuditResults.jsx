@@ -6,7 +6,7 @@ import { PowerAnalysis } from "./ui/PowerAnalysis";
 import { PublicationChecklist } from "./ui/PublicationChecklist";
 import { encodeSharePayload } from "../App";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function ScoreBar({ score, label, color }) {
   const cls = score >= 70 ? "high" : score >= 45 ? "med" : "low";
@@ -171,18 +171,37 @@ function ReportMarkdown({ md }) {
   return <div className="report-md" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-function LambdaAnalysis({ file, context }) {
+function LocalAiAnalysis({ file, context }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lambdaStatus, setLambdaStatus] = useState(null);
+  const [localAiStatus, setLocalAiStatus] = useState(null);
   const [question, setQuestion] = useState(
     "Analyze this metabolite dataset. Summarize key patterns, identify statistical concerns, and suggest the most important metabolites to investigate further."
   );
 
-  const checkLambda = async () => {
-    setLambdaStatus("ok");
-    return true;
+  const checkLocalAi = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/status`);
+      const data = await res.json();
+      setLocalAiStatus(data);
+      if (!data.installed) {
+        setError("Validex needs Ollama to run private local AI. Run validex again after setup completes.");
+        return false;
+      }
+      if (!data.running) {
+        setError("Ollama is not running. Run validex again after setup completes.");
+        return false;
+      }
+      if (!data.model_installed) {
+        setError(`Ollama model ${data.model || "llama3.2:3b"} is not installed. Run validex again to pull it.`);
+        return false;
+      }
+      return true;
+    } catch {
+      setError("Could not reach the local Validex AI status endpoint.");
+      return false;
+    }
   };
 
   const runAnalysis = async () => {
@@ -190,9 +209,8 @@ function LambdaAnalysis({ file, context }) {
     setError(null);
     setAnalysis(null);
 
-    const isUp = await checkLambda();
+    const isUp = await checkLocalAi();
     if (!isUp) {
-      setError("AI analysis unavailable. Please try again.");
       setLoading(false);
       return;
     }
@@ -203,7 +221,7 @@ function LambdaAnalysis({ file, context }) {
     if (context) formData.append("context", JSON.stringify(context));
 
     try {
-      const res = await fetch(`${API_BASE}/lambda-analyze`, {
+      const res = await fetch(`${API_BASE}/api/ai/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -219,9 +237,9 @@ function LambdaAnalysis({ file, context }) {
   return (
     <div>
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-label">AI-Powered Analysis · Llama 3.3 70B</div>
+        <div className="card-label">Local AI Analysis · Ollama · llama3.2:3b</div>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 18, lineHeight: 1.7 }}>
-          Ask any question about your metabolite data. The AI will analyze it and provide expert-level insights.
+          Local AI is running through Ollama. Your dataset is processed on this device. No cloud AI is used.
         </p>
 
         {/* AI Prompt Box — styled input with send button */}
@@ -253,14 +271,14 @@ function LambdaAnalysis({ file, context }) {
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "8px 12px 12px",
           }}>
-            {lambdaStatus ? (
+            {localAiStatus?.running ? (
               <span style={{
                 fontFamily: "var(--font-mono)", fontSize: 10,
                 color: "var(--green)", background: "var(--green-subtle)",
                 border: "1px solid rgba(74,222,128,0.15)",
                 padding: "3px 9px", borderRadius: 99, letterSpacing: "0.06em",
               }}>
-                ● AI online
+                ● Local AI active
               </span>
             ) : (
               <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
@@ -295,7 +313,7 @@ function LambdaAnalysis({ file, context }) {
           <div className="spinner" style={{ width: 24, height: 24, margin: "0 auto 16px", borderWidth: 2 }} />
           <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>Analyzing your data…</div>
           <div style={{ color: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)" }}>
-            Llama 3.3 70B is processing your dataset. This may take 15–40 seconds.
+            Ollama is processing a structured dataset summary locally. This may take 15-40 seconds.
           </div>
         </div>
       )}
@@ -334,9 +352,9 @@ function LambdaAnalysis({ file, context }) {
       {!analysis && !loading && !error && (
         <div className="card" style={{ border: "1px dashed var(--border)", background: "transparent", textAlign: "center", padding: "40px 24px" }}>
           <div style={{ fontSize: 28, marginBottom: 12 }}>🤖</div>
-          <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>Llama 3.3 70B ready</div>
+          <div style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 6 }}>Local AI ready</div>
           <div style={{ color: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)", lineHeight: 1.8 }}>
-            Ask any question about your data above.
+            AI provider: Ollama. Your dataset stays on this device.
           </div>
         </div>
       )}
@@ -796,7 +814,7 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
 
       {/* AI ANALYSIS */}
       {tab === "ai" && (
-        <LambdaAnalysis file={file} context={context} />
+        <LocalAiAnalysis file={file} context={context} />
       )}
 
       {/* CLEAN DATA */}

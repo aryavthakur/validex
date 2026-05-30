@@ -5,6 +5,11 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  publicDir: "public-local",
+  build: {
+    outDir: "../validex/static",
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),

@@ -183,7 +183,7 @@ function AiAnalysisFallback() {
   return (
     <div style={{ width: "100%", padding: "40px 60px" }}>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.1em", marginBottom: 20, textTransform: "uppercase" }}>
-        AI-POWERED ANALYSIS · GROQ
+        LOCAL AI ANALYSIS · OLLAMA
       </div>
       <div style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.9, maxWidth: 600 }}>
         <div style={{ marginBottom: 16 }}>
@@ -201,7 +201,7 @@ function AiAnalysisFallback() {
       </div>
       <div style={{ marginTop: 20, display: "flex", gap: 8 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--green)", background: "var(--green-subtle)", border: "1px solid rgba(74,222,128,0.15)", padding: "3px 9px", borderRadius: 99 }}>AI ● online</span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", background: "var(--bg-panel)", border: "1px solid var(--border)", padding: "3px 9px", borderRadius: 99 }}>Groq · free</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", background: "var(--bg-panel)", border: "1px solid var(--border)", padding: "3px 9px", borderRadius: 99 }}>Ollama · local</span>
       </div>
     </div>
   );
@@ -303,7 +303,7 @@ const STATS = [
   { value: "< 3s",  label: "Average audit time"     },
   { value: "18+",   label: "Detection rules"         },
   { value: "Free",  label: "Always, no login needed" },
-  { value: "AI",    label: "Groq-powered analysis"   },
+  { value: "AI",    label: "Local Ollama analysis"   },
 ];
 
 function StatsRow() {
@@ -421,7 +421,7 @@ export default function LandingPage({ onLaunch, onDemo }) {
           {[
             { num: "01", icon: "📁", title: "Upload your CSV", desc: "Drag and drop any metabolomics results file. Works with untargeted and targeted exports from common platforms." },
             { num: "02", icon: "⚙️", title: "Set study context", desc: "Specify your design — paired vs independent, batch effects, sample size, and notes. Context shapes what Validex flags." },
-            { num: "03", icon: "🤖", title: "Get AI insights", desc: "Ask any question about your data. Groq analyzes patterns, flags outliers, and suggests next steps." },
+            { num: "03", icon: "🤖", title: "Get AI insights", desc: "Ask any question about your data. Ollama analyzes structured summaries locally and suggests next steps." },
             { num: "04", icon: "🧹", title: "Download clean data", desc: "Review proposed removals — duplicates, outliers, missing values — then download a cleaned CSV with your approval." },
           ].map((step, i) => (
             <FadeUp key={i} delay={i * 0.08}>
@@ -496,7 +496,7 @@ export default function LandingPage({ onLaunch, onDemo }) {
       <FeatureSection
         label="AI analysis"
         title="Ask anything about your metabolite data."
-        sub="Powered by Groq. Ask about key patterns, biomarker candidates, batch effects, statistical concerns, or next steps. The AI reads your actual data — not a summary."
+        sub="Powered by local Ollama. Ask about key patterns, biomarker candidates, batch effects, statistical concerns, or next steps. Validex sends structured summaries to the local model, not raw datasets to a cloud provider."
         extras={
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
