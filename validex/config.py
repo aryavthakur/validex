@@ -43,8 +43,7 @@ def load_config() -> dict[str, Any]:
     # Privacy boundary: cloud AI must never be enabled by implicit/default config.
     config["ai_provider"] = "ollama"
     config["cloud_ai_enabled"] = False
-    if not config.get("host"):
-        config["host"] = "127.0.0.1"
+    config["host"] = "127.0.0.1"
 
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     return config
@@ -54,6 +53,7 @@ def save_config(config: dict[str, Any]) -> dict[str, Any]:
     merged = {**DEFAULT_CONFIG, **config}
     merged["ai_provider"] = "ollama"
     merged["cloud_ai_enabled"] = False
+    merged["host"] = "127.0.0.1"
     config_path().parent.mkdir(parents=True, exist_ok=True)
     config_path().write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
     return merged

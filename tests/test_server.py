@@ -67,3 +67,48 @@ def test_ai_analyze_uses_local_ollama_with_structured_summary(monkeypatch):
     assert "A,0.01,1.5" not in prompt
     assert model == "llama3.2:3b"
     assert timeout == 90.0
+
+
+def test_ai_status_reports_local_ollama_without_cloud_calls(monkeypatch):
+    calls = []
+
+    class FakeOllama:
+        def __init__(self, base_url):
+            calls.append(("init", base_url))
+
+        def is_installed(self):
+            calls.append(("is_installed",))
+            return True
+
+        def health(self):
+            calls.append(("health",))
+            return {"running": True, "error": None}
+
+        def list_models(self):
+            calls.append(("list_models",))
+            return ["llama3.2:3b"]
+
+    monkeypatch.setattr("validex.server.OllamaClient", FakeOllama)
+    app = create_app(config=DEFAULT_CONFIG)
+    client = TestClient(app)
+
+    response = client.get("/api/ai/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "ollama",
+        "installed": True,
+        "running": True,
+        "model": "llama3.2:3b",
+        "model_installed": True,
+        "models": ["llama3.2:3b"],
+        "local_only": True,
+        "cloud_ai_enabled": False,
+        "error": None,
+    }
+    assert calls == [
+        ("init", "http://localhost:11434"),
+        ("is_installed",),
+        ("health",),
+        ("list_models",),
+    ]

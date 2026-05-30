@@ -2,7 +2,7 @@ import subprocess
 
 import pytest
 
-from validex.ai.ollama_client import OllamaClient
+from validex.ai.ollama_client import OllamaClient, OllamaError
 
 
 def test_list_models_normalizes_ollama_tags_response():
@@ -20,6 +20,7 @@ def test_pull_model_uses_ollama_cli_with_requested_model(monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(OllamaClient, "is_installed", lambda self: True)
 
     OllamaClient().pull_model("llama3.2:3b")
 
@@ -59,6 +60,14 @@ def test_pull_model_reports_clear_failure(monkeypatch):
         raise subprocess.CalledProcessError(1, cmd)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(OllamaClient, "is_installed", lambda self: True)
 
-    with pytest.raises(Exception, match="Failed to pull Ollama model: llama3.2:3b"):
+    with pytest.raises(OllamaError, match="Failed to pull Ollama model: llama3.2:3b"):
         OllamaClient().pull_model("llama3.2:3b")
+
+
+def test_require_installed_reports_clear_error_when_ollama_missing(monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda command: None)
+
+    with pytest.raises(OllamaError, match="Ollama is not installed. Install Ollama to use private local AI."):
+        OllamaClient().require_installed()
