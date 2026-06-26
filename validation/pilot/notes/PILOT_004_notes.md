@@ -77,3 +77,24 @@ N/A — excluded.
 ## 16. Final Inclusion Decision
 
 no — excluded due to DOCX format. Supplementary tables require manual extraction before machine-readable CSV ingestion is possible. Recheck if a CSV version becomes available.
+
+## 17. Local Pilot Dry Run Decision
+
+Header row inspected: yes
+
+Local table filename: PILOT_004_ST000164_cleaned.csv
+
+Exact inspected headers: Metabolite, F value, P-value, FDR adjusted P-value, Main class, Sub class
+
+Manual label decisions:
+- compound_id = Metabolite
+- effect_size = empty
+- p_value = P-value
+- fdr = FDR adjusted P-value
+- annotation = AMBIGUOUS:Main class|Sub class
+
+Expected findings: empty
+
+Ambiguities: annotation has Main class and Sub class
+
+Final inclusion decision: included for pilot dry run only

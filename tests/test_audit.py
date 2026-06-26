@@ -372,6 +372,43 @@ class TestConfidenceLabel:
         assert result["audit_confidence"] == "medium"
 
 
+class TestPilotSTAudit:
+    @pytest.fixture
+    def df_pilot_st(self):
+        return pd.DataFrame({
+            "Metabolite": ["A", "B", "C"],
+            "F value": [4.2, 8.1, 2.0],
+            "P-value": [0.01, 0.05, 0.20],
+            "FDR adjusted P-value": [0.03, 0.08, 0.25],
+            "Main class": ["Lipids", "Amino acids", "Lipids"],
+            "Sub class": ["PC", "Branched chain", "TG"],
+        })
+
+    def test_pilot_style_dataframe_detects_probability_columns(self, df_pilot_st):
+        result = audit_dataframe(df_pilot_st)
+        assert result["detected"]["p_value"] == "P-value"
+        assert result["detected"]["fdr"] == "FDR adjusted P-value"
+
+    def test_pilot_style_dataframe_does_not_report_missing_probability_columns(self, df_pilot_st):
+        result = audit_dataframe(df_pilot_st)
+        titles = [f["title"].lower() for f in result["flags"]]
+        assert not any("missing p-value" in t or "missing p-values" in t for t in titles)
+        assert not any("missing fdr" in t for t in titles)
+
+    def test_pilot_style_dataframe_reports_annotation_ambiguity(self, df_pilot_st):
+        result = audit_dataframe(df_pilot_st)
+        annotation_flags = [
+            f for f in result["flags"]
+            if f.get("field") == "annotation" and "Ambiguous" in f.get("title", "")
+        ]
+        assert annotation_flags
+        assert annotation_flags[0]["candidate_columns"] == ["Main class", "Sub class"]
+
+    def test_pilot_style_dataframe_does_not_treat_f_value_as_effect_size(self, df_pilot_st):
+        result = audit_dataframe(df_pilot_st)
+        assert result["detected"]["effect_size"] is None
+
+
 class TestBackendSmoke:
     def test_audit_endpoint_dataset_c_does_not_detect_p_value(self):
         """Uploading Dataset C columns must not produce a detected p_value in the schema."""

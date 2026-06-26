@@ -58,6 +58,7 @@ KNOWN_ALIASES: Dict[str, List[str]] = {
         "p_adjust",
         "p_adjusted",
         "p_adjusted_value",
+        "fdr_adjusted_p_value",
         "bh_p",
         "benjamini_hochberg",
         "false_discovery_rate",
@@ -73,6 +74,8 @@ KNOWN_ALIASES: Dict[str, List[str]] = {
         "identification_confidence",
         "metabolite_identification",
         "putative_id",
+        "main_class",
+        "sub_class",
     ],
 }
 

@@ -6,6 +6,7 @@ note helper works correctly, and the README states appropriate limitations.
 from __future__ import annotations
 
 import csv
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -27,6 +28,15 @@ LABELS_REQUIRED_COLUMNS = {
     "dataset_id", "table_filename", "compound_id", "effect_size",
     "p_value", "fdr", "annotation", "expected_findings",
     "reviewer_id", "review_notes",
+}
+
+ALLOWED_FINDING_CODES = {
+    "",
+    "missing_p_value",
+    "missing_fdr",
+    "invalid_p_value_column",
+    "invalid_fdr_column",
+    "ambiguous_schema_field",
 }
 
 
@@ -117,6 +127,100 @@ def test_pilot_labels_template_has_all_pilot_ids():
     rows = _read_csv(PILOT_DIR / "labels.pilot.template.csv")
     ids = {r["dataset_id"] for r in rows}
     assert set(PILOT_IDS) == ids
+
+
+# ---------------------------------------------------------------------------
+# labels.pilot.csv tests (local pilot dry-run labels)
+# ---------------------------------------------------------------------------
+
+PILOT_LABELS_PATH = PILOT_DIR / "labels.pilot.csv"
+
+
+def _is_git_ignored(path: Path) -> bool:
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", str(path.relative_to(REPO_ROOT))],
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def _git_tracked_files_under(path: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-files", str(path.relative_to(REPO_ROOT))],
+        cwd=REPO_ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    return [line for line in result.stdout.splitlines() if line]
+
+
+def test_pilot_labels_csv_exists():
+    assert PILOT_LABELS_PATH.exists()
+
+
+def test_pilot_labels_csv_has_required_columns():
+    rows = _read_csv(PILOT_LABELS_PATH)
+    assert rows, "labels.pilot.csv is empty"
+    actual = set(rows[0].keys())
+    missing = LABELS_REQUIRED_COLUMNS - actual
+    assert not missing, f"Missing columns: {missing}"
+
+
+def test_pilot_labels_dataset_ids_exist_in_registry():
+    label_rows = _read_csv(PILOT_LABELS_PATH)
+    registry_ids = {row["dataset_id"] for row in _read_csv(PILOT_REGISTRY_PATH)}
+    for row in label_rows:
+        assert row["dataset_id"] in registry_ids
+
+
+def test_pilot_labels_table_filenames_are_nonempty():
+    rows = _read_csv(PILOT_LABELS_PATH)
+    for row in rows:
+        assert row["table_filename"].strip(), (
+            f"table_filename is empty for {row['dataset_id']}"
+        )
+
+
+def test_pilot_labeled_table_files_exist_or_are_allowed_local_only():
+    rows = _read_csv(PILOT_LABELS_PATH)
+    for row in rows:
+        table_path = PILOT_DIR / "tables" / row["table_filename"]
+        assert _is_git_ignored(table_path), f"Pilot table is not git-ignored: {table_path}"
+        assert table_path.exists() or _is_git_ignored(table_path), (
+            f"Pilot table must either exist locally or be an ignored local-only path: {table_path}"
+        )
+
+
+def test_pilot_labels_do_not_include_pilot_005():
+    ids = {row["dataset_id"] for row in _read_csv(PILOT_LABELS_PATH)}
+    assert "PILOT_005" not in ids
+
+
+def test_pilot_labels_expected_findings_are_allowed_or_empty():
+    rows = _read_csv(PILOT_LABELS_PATH)
+    for row in rows:
+        raw = row["expected_findings"].strip()
+        codes = [code.strip() for code in raw.split("|")] if raw else [""]
+        for code in codes:
+            assert code in ALLOWED_FINDING_CODES, (
+                f"Invalid expected finding {code!r} for {row['dataset_id']}"
+            )
+
+
+def test_pilot_labels_annotation_uses_ambiguous_pair_format():
+    rows = _read_csv(PILOT_LABELS_PATH)
+    for row in rows:
+        annotation = row["annotation"].strip()
+        assert annotation == "AMBIGUOUS:Main class|Sub class"
+
+
+def test_pilot_labels_do_not_use_f_value_as_effect_size():
+    rows = _read_csv(PILOT_LABELS_PATH)
+    for row in rows:
+        assert row["effect_size"].strip() == ""
+        assert "F value is a test statistic" in row["review_notes"]
 
 
 # ---------------------------------------------------------------------------
@@ -388,12 +492,15 @@ def test_pilot_registry_csv_does_not_claim_validation_results():
     reason="registry.pilot.csv not yet created",
 )
 def test_no_table_csvs_committed_in_pilot_tables():
-    """No CSV files should be committed in validation/pilot/tables/ (only .gitkeep)."""
+    """No pilot table CSV files should be tracked by git."""
     tables_dir = PILOT_DIR / "tables"
-    committed_csvs = list(tables_dir.glob("*.csv"))
-    assert committed_csvs == [], (
-        f"CSV files committed in validation/pilot/tables/ — these should be git-ignored: "
-        f"{[str(p) for p in committed_csvs]}"
+    tracked_csvs = [
+        p for p in _git_tracked_files_under(tables_dir)
+        if p.endswith(".csv")
+    ]
+    assert tracked_csvs == [], (
+        f"CSV files tracked in validation/pilot/tables/ — these should stay local-only: "
+        f"{tracked_csvs}"
     )
 
 

@@ -115,3 +115,24 @@ Not yet completed.
 
 pending — headers confirmed; redistribution rights must be clarified before
 committing any table file. Labeling deferred until a local TSV/CSV is inspected.
+
+## 17. Local Pilot Dry Run Decision
+
+Header row inspected: yes
+
+Local table filename: PILOT_003_ST002334.csv
+
+Exact inspected headers: Metabolite, F value, P-value, FDR adjusted P-value, Main class, Sub class
+
+Manual label decisions:
+- compound_id = Metabolite
+- effect_size = empty
+- p_value = P-value
+- fdr = FDR adjusted P-value
+- annotation = AMBIGUOUS:Main class|Sub class
+
+Expected findings: empty
+
+Ambiguities: annotation has Main class and Sub class
+
+Final inclusion decision: included for pilot dry run only

@@ -58,6 +58,7 @@ class TestValidAliases:
         ("p_value", "p_value"),
         ("p value", "p value"),    # space-separated
         ("P.Value", "P.Value"),    # dot-separated, mixed case
+        ("P-value", "P-value"),    # hyphen-separated pilot-style header
         ("pval", "pval"),
         ("raw_p", "raw_p"),
         ("pvalue", "pvalue"),
@@ -75,14 +76,56 @@ class TestValidAliases:
         ("p.adjust", "p.adjust"),   # period normalises to underscore → p_adjust
         ("adj_p", "adj_p"),
         ("p_adj", "p_adj"),
+        ("FDR adjusted P-value", "FDR adjusted P-value"),
     ])
     def test_fdr_aliases(self, col, expected):
         sm = detect_schema([col])
         assert sm.canonical_to_original.get("fdr") == expected
 
+    @pytest.mark.parametrize("col,expected", [
+        ("Main class", "Main class"),
+        ("Sub class", "Sub class"),
+    ])
+    def test_metabolite_class_aliases_map_to_annotation(self, col, expected):
+        sm = detect_schema([col])
+        assert sm.canonical_to_original.get("annotation") == expected
+
 
 # ---------------------------------------------------------------------------
-# Group C: Flagship Dataset C — schema detection
+# Group C: Pilot ST-style schema detection
+# ---------------------------------------------------------------------------
+
+class TestPilotSTSchema:
+    COLUMNS = [
+        "Metabolite",
+        "F value",
+        "P-value",
+        "FDR adjusted P-value",
+        "Main class",
+        "Sub class",
+    ]
+
+    def test_f_value_not_detected_as_effect_size(self):
+        sm = detect_schema(self.COLUMNS)
+        assert "effect_size" not in sm.canonical_to_original
+        assert "effect_size" in sm.missing
+
+    def test_main_and_sub_class_produce_annotation_ambiguity(self):
+        sm = detect_schema(self.COLUMNS)
+        assert sm.canonical_to_original.get("annotation") == "Main class"
+        assert sm.ambiguities.get("annotation") == ["Main class", "Sub class"]
+
+    def test_pilot_style_dataframe_schema(self):
+        sm = detect_schema(self.COLUMNS)
+        assert sm.canonical_to_original.get("compound_id") == "Metabolite"
+        assert sm.canonical_to_original.get("effect_size") is None
+        assert sm.canonical_to_original.get("p_value") == "P-value"
+        assert sm.canonical_to_original.get("fdr") == "FDR adjusted P-value"
+        assert sm.ambiguities.get("annotation") == ["Main class", "Sub class"]
+
+
+# ---------------------------------------------------------------------------
+# Group D: Flagship Dataset C — schema detection
 # ---------------------------------------------------------------------------
 
 class TestDatasetCSchema:
