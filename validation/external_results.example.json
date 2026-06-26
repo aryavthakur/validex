@@ -1,0 +1,84 @@
+{
+  "_note": "THIS IS AN EXAMPLE ONLY. No real external validation has been conducted. This file shows the intended output structure of run_external_validation.py.",
+  "protocol_version": "1.0",
+  "status": "example_only",
+  "n_tables": 3,
+  "field_level": {
+    "true_positives": 11,
+    "false_positives": 0,
+    "false_negatives": 2,
+    "true_negatives": 2,
+    "precision": 1.0,
+    "recall": 0.846
+  },
+  "exact_schema_match_rate": 0.667,
+  "finding_level": {
+    "true_positives": 3,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "precision": 1.0,
+    "recall": 1.0
+  },
+  "score_distribution": {
+    "min": 40,
+    "max": 100,
+    "mean": 78.3,
+    "values": [100, 40, 95]
+  },
+  "confidence_distribution": {
+    "high": 1,
+    "medium": 1,
+    "low": 1
+  },
+  "tables": [
+    {
+      "dataset_id": "EXAMPLE_001",
+      "table_filename": "example_complete.csv",
+      "score": 100,
+      "audit_confidence": "high",
+      "field_tp": 5,
+      "field_fp": 0,
+      "field_fn": 0,
+      "field_tn": 0,
+      "finding_tp": 0,
+      "finding_fp": 0,
+      "finding_fn": 0,
+      "exact_schema_match": true,
+      "false_positive_details": [],
+      "false_negative_details": []
+    },
+    {
+      "dataset_id": "EXAMPLE_002",
+      "table_filename": "example_missing_stats.csv",
+      "score": 40,
+      "audit_confidence": "low",
+      "field_tp": 3,
+      "field_fp": 0,
+      "field_fn": 0,
+      "field_tn": 2,
+      "finding_tp": 2,
+      "finding_fp": 0,
+      "finding_fn": 0,
+      "exact_schema_match": true,
+      "false_positive_details": [],
+      "false_negative_details": []
+    },
+    {
+      "dataset_id": "EXAMPLE_003",
+      "table_filename": "example_ambiguous.csv",
+      "score": 95,
+      "audit_confidence": "medium",
+      "field_tp": 5,
+      "field_fp": 0,
+      "field_fn": 0,
+      "field_tn": 0,
+      "finding_tp": 1,
+      "finding_fp": 0,
+      "finding_fn": 0,
+      "exact_schema_match": true,
+      "false_positive_details": [],
+      "false_negative_details": []
+    }
+  ],
+  "failure_cases": []
+}

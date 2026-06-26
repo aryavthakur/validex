@@ -155,3 +155,132 @@ def test_ai_status_does_not_probe_ollama_when_cli_missing(monkeypatch):
         ("init", "http://localhost:11434"),
         ("is_installed",),
     ]
+
+
+# ---------------------------------------------------------------------------
+# /audit endpoint — top-level response shape
+# ---------------------------------------------------------------------------
+
+class TestAuditEndpointResponseShape:
+    """The /audit endpoint must expose audit_confidence, score, and findings top-level."""
+
+    def _post_csv(self, client, csv_content: str, filename: str = "test.csv"):
+        return client.post(
+            "/audit",
+            files={"file": (filename, csv_content.encode(), "text/csv")},
+            data={"context": "{}"},
+        )
+
+    def test_audit_response_includes_top_level_audit_confidence(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n"
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert "audit_confidence" in data, f"audit_confidence missing from top-level response: {list(data.keys())}"
+
+    def test_audit_response_includes_top_level_score(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n"
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert "score" in data, f"score missing from top-level response: {list(data.keys())}"
+
+    def test_audit_response_includes_top_level_findings(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n"
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert "findings" in data, f"findings missing from top-level response: {list(data.keys())}"
+        assert isinstance(data["findings"], list)
+
+    def test_complete_standard_returns_high_confidence(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = (
+            "compound_id,logFC,p_value,fdr,Annotation\n"
+            "M1,1.5,0.01,0.05,confirmed\n"
+            "M2,-0.3,0.20,0.40,putative\n"
+        )
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["audit_confidence"] == "high", (
+            f"Expected 'high' for complete standard input, got {data['audit_confidence']!r}"
+        )
+        assert data["score"] == 100
+
+    def test_dataset_c_returns_low_confidence(self):
+        """Dataset C has no p-value or FDR — must return low confidence."""
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = (
+            "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
+            "M1,1.5,10,15,confirmed\n"
+            "M2,-0.3,5,4,putative\n"
+        )
+        response = self._post_csv(client, csv, "dataset_c.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["audit_confidence"] == "low", (
+            f"Expected 'low' for Dataset C input, got {data['audit_confidence']!r}"
+        )
+        assert data["score"] == 40
+
+    def test_ambiguous_pvalue_returns_medium_confidence(self):
+        """Two columns both matching p_value aliases — must return medium confidence."""
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = (
+            "compound_id,logFC,p_value,pval,FDR,Annotation\n"
+            "M1,1.5,0.01,0.01,0.05,confirmed\n"
+            "M2,-0.3,0.20,0.20,0.40,putative\n"
+        )
+        response = self._post_csv(client, csv, "ambiguous.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["audit_confidence"] == "medium", (
+            f"Expected 'medium' for ambiguous p_value input, got {data['audit_confidence']!r}"
+        )
+
+    def test_top_level_audit_confidence_matches_report_json(self):
+        """Top-level audit_confidence must equal report_json.analysis.audit_confidence."""
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = (
+            "compound_id,logFC,p_value,fdr,Annotation\n"
+            "M1,1.5,0.01,0.05,confirmed\n"
+        )
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        report_json_confidence = data.get("report_json", {}).get("analysis", {}).get("audit_confidence")
+        assert data["audit_confidence"] == report_json_confidence, (
+            f"Top-level audit_confidence {data['audit_confidence']!r} != "
+            f"report_json value {report_json_confidence!r}"
+        )
+
+    def test_audit_response_still_includes_schema(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n"
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert "schema" in data
+        assert "canonical_to_original" in data["schema"]
+
+    def test_audit_response_still_includes_report_json(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        csv = "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n"
+        response = self._post_csv(client, csv, "complete.csv")
+        assert response.status_code == 200
+        data = response.json()
+        assert "report_json" in data
+        assert "analysis" in data["report_json"]

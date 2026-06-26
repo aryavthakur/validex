@@ -1,0 +1,4 @@
+dataset_id,table_filename,compound_id,effect_size,p_value,fdr,annotation,expected_findings,reviewer_id,review_notes
+EXAMPLE_001,example_complete.csv,compound_id,logFC,p_value,FDR,Annotation,,reviewer_a,Complete standard-style table — all canonical fields present with unambiguous names
+EXAMPLE_002,example_missing_stats.csv,compound_id,logFC,,,Annotation,missing_p_value|missing_fdr,reviewer_a,Missing statistical fields — no p-value or FDR columns present
+EXAMPLE_003,example_ambiguous.csv,compound_id,logFC,AMBIGUOUS:p_value|pval,FDR,Annotation,ambiguous_schema_field,reviewer_a,Ambiguous p-value aliases — both p_value and pval columns present

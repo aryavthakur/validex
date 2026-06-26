@@ -1,0 +1,150 @@
+<h2>Hero section layout</h2>
+<p class="subtitle">How should the landing page hero be structured?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="centered" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+      <!-- Nav -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:12px;border-bottom:1px solid #1a1a1a;">
+        <span style="font-size:13px;font-weight:700;color:#f0ede8;">Validex</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span style="font-size:10px;color:#555;">Features</span>
+          <span style="font-size:10px;color:#555;">Docs</span>
+          <span style="font-size:10px;background:#f0ede8;color:#0a0a0a;padding:4px 10px;border-radius:4px;font-weight:600;">Run Audit</span>
+        </div>
+      </div>
+      <!-- Centered hero -->
+      <div style="text-align:center;padding:16px 12px;">
+        <div style="font-family:monospace;font-size:9px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;display:inline-flex;align-items:center;gap:6px;border:1px solid #1f1f1f;padding:3px 10px;border-radius:99px;">
+          <span style="width:5px;height:5px;background:#4ade80;border-radius:50%;display:inline-block;"></span>
+          AI-powered · Free
+        </div>
+        <div style="font-size:26px;font-weight:700;color:#f0ede8;line-height:1.15;margin-bottom:10px;letter-spacing:-0.03em;">From raw data to<br/>publication-ready.</div>
+        <div style="font-size:11px;color:#666;line-height:1.7;margin-bottom:16px;max-width:280px;margin-left:auto;margin-right:auto;">Upload a metabolomics CSV. Get a full audit, AI confidence score, and cleaned dataset in seconds.</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <span style="background:#f0ede8;color:#0a0a0a;font-size:11px;font-weight:600;padding:6px 14px;border-radius:5px;">Run your first audit →</span>
+          <span style="color:#666;font-size:11px;padding:6px 12px;border-radius:5px;border:1px solid #1f1f1f;">See example</span>
+        </div>
+        <!-- mini stats -->
+        <div style="display:flex;justify-content:center;gap:20px;margin-top:18px;padding-top:14px;border-top:1px solid #141414;">
+          <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#f0ede8;">&lt;3s</div><div style="font-size:8px;color:#444;margin-top:2px;">Audit time</div></div>
+          <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#f0ede8;">18+</div><div style="font-size:8px;color:#444;margin-top:2px;">Rules</div></div>
+          <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#f0ede8;">Free</div><div style="font-size:8px;color:#444;margin-top:2px;">Always</div></div>
+          <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#f0ede8;">AI</div><div style="font-size:8px;color:#444;margin-top:2px;">Groq</div></div>
+        </div>
+      </div>
+      <!-- video mockup -->
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:8px;overflow:hidden;margin-top:14px;">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid #1a1a1a;">
+          <div style="width:7px;height:7px;border-radius:50%;background:rgba(248,113,113,0.4)"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:rgba(245,158,11,0.4)"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:rgba(74,222,128,0.4)"></div>
+          <span style="font-family:monospace;font-size:8px;color:#444;flex:1;text-align:center;">validex — audit demo</span>
+        </div>
+        <div style="height:60px;background:linear-gradient(135deg,#111,#0d0d0d);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:9px;color:#333;font-family:monospace;">[ demo video ]</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Centered Hero</h3>
+      <p>Classic SaaS — pill badge, big centered headline, CTA buttons, stats row, then full-width demo video below.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="split" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+      <!-- Nav -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid #1a1a1a;">
+        <span style="font-size:13px;font-weight:700;color:#f0ede8;">Validex</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span style="font-size:10px;color:#555;">Features</span>
+          <span style="font-size:10px;color:#555;">Docs</span>
+          <span style="font-size:10px;background:#f0ede8;color:#0a0a0a;padding:4px 10px;border-radius:4px;font-weight:600;">Run Audit</span>
+        </div>
+      </div>
+      <!-- Split hero -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;">
+        <div>
+          <div style="font-family:monospace;font-size:8px;color:#555;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Metabolomics auditing</div>
+          <div style="font-size:20px;font-weight:700;color:#f0ede8;line-height:1.2;margin-bottom:8px;letter-spacing:-0.03em;">From raw data to publication-ready.</div>
+          <div style="font-size:10px;color:#666;line-height:1.7;margin-bottom:12px;">Upload a metabolomics CSV. Full audit, AI score, and cleaned dataset in seconds.</div>
+          <div style="display:flex;gap:6px;">
+            <span style="background:#f0ede8;color:#0a0a0a;font-size:10px;font-weight:600;padding:5px 12px;border-radius:4px;">Run audit →</span>
+            <span style="color:#666;font-size:10px;padding:5px 10px;border-radius:4px;border:1px solid #1f1f1f;">Demo</span>
+          </div>
+        </div>
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:8px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid #1a1a1a;">
+            <div style="width:6px;height:6px;border-radius:50%;background:rgba(248,113,113,0.4)"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:rgba(245,158,11,0.4)"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:rgba(74,222,128,0.4)"></div>
+            <span style="font-family:monospace;font-size:7px;color:#444;margin-left:4px;">validex demo</span>
+          </div>
+          <div style="height:80px;background:linear-gradient(135deg,#111,#0d0d0d);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:8px;color:#333;font-family:monospace;">[ demo video ]</span>
+          </div>
+        </div>
+      </div>
+      <!-- stats below -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px;">
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:5px;padding:7px;text-align:center;">
+          <div style="font-size:12px;font-weight:700;color:#f0ede8;">&lt;3s</div>
+          <div style="font-size:7px;color:#444;margin-top:1px;">Audit time</div>
+        </div>
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:5px;padding:7px;text-align:center;">
+          <div style="font-size:12px;font-weight:700;color:#f0ede8;">18+</div>
+          <div style="font-size:7px;color:#444;margin-top:1px;">Rules</div>
+        </div>
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:5px;padding:7px;text-align:center;">
+          <div style="font-size:12px;font-weight:700;color:#f0ede8;">Free</div>
+          <div style="font-size:7px;color:#444;margin-top:1px;">Always</div>
+        </div>
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:5px;padding:7px;text-align:center;">
+          <div style="font-size:12px;font-weight:700;color:#f0ede8;">AI</div>
+          <div style="font-size:7px;color:#444;margin-top:1px;">Groq</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Split Hero (text left, video right)</h3>
+      <p>Text + CTA on left, live demo video on right. Stats row below. More editorial, less SaaS-generic.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="minimal-centered" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+      <!-- Minimal nav -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;">
+        <span style="font-size:13px;font-weight:700;color:#f0ede8;">Validex</span>
+        <span style="font-size:10px;background:#f0ede8;color:#0a0a0a;padding:4px 10px;border-radius:4px;font-weight:600;">Run Audit →</span>
+      </div>
+      <!-- Minimal centered, very spacious -->
+      <div style="text-align:center;padding:8px 0 20px;">
+        <div style="font-size:9px;font-family:monospace;color:#444;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;">Metabolomics · AI · Free</div>
+        <div style="font-size:28px;font-weight:800;color:#f0ede8;line-height:1.1;margin-bottom:6px;letter-spacing:-0.04em;">Audit-grade metabolomics</div>
+        <div style="font-size:28px;font-weight:800;color:#444;line-height:1.1;margin-bottom:14px;letter-spacing:-0.04em;">in seconds.</div>
+        <div style="font-size:11px;color:#555;max-width:260px;margin:0 auto 16px;line-height:1.7;">Upload a CSV. Get flags, AI score, and a cleaned dataset. No login needed.</div>
+        <span style="background:#f0ede8;color:#0a0a0a;font-size:11px;font-weight:700;padding:8px 18px;border-radius:5px;display:inline-block;">Run your first audit →</span>
+      </div>
+      <!-- full width video -->
+      <div style="background:#111;border:1px solid #161616;border-radius:8px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:4px;padding:7px 12px;border-bottom:1px solid #161616;">
+          <div style="width:6px;height:6px;border-radius:50%;background:rgba(248,113,113,0.4)"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:rgba(245,158,11,0.4)"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:rgba(74,222,128,0.4)"></div>
+          <span style="font-family:monospace;font-size:7px;color:#3a3a3a;flex:1;text-align:center;">validex — live demo</span>
+        </div>
+        <div style="height:70px;background:linear-gradient(135deg,#0f0f0f,#0a0a0a);display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:8px;color:#282828;font-family:monospace;">[ demo video ]</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Minimal Centered (ssscript-style)</h3>
+      <p>Ultra-minimal nav (logo + one CTA), bold stacked headline, single CTA, then full-width demo. Closest to ssscript.app.</p>
+    </div>
+  </div>
+
+</div>

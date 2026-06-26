@@ -1,0 +1,6 @@
+compound_id,quant,request,quality,acquisition,adjacent,logFC,p_value,Annotation
+M1,100,req1,high,acq1,adj1,1.52,0.001,confirmed
+M2,200,req2,medium,acq2,adj2,-0.85,0.032,putative
+M3,150,req3,high,acq3,adj3,2.10,0.008,confirmed
+M4,300,req4,low,acq4,adj4,-1.30,0.210,putative
+M5,250,req5,high,acq5,adj5,0.72,0.560,unknown

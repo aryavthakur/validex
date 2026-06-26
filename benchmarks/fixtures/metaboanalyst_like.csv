@@ -1,0 +1,8 @@
+Metabolite,log2 fold change,raw p,adjusted p,identification level
+glucose,1.52,0.001,0.010,confirmed
+palmitate,-0.85,0.032,0.095,putative
+lactate,2.10,0.008,0.040,confirmed
+citrate,-1.30,0.210,0.425,putative
+alanine,0.72,0.560,0.720,unknown
+glutamate,-0.40,0.830,0.900,putative
+pyruvate,1.90,0.002,0.015,confirmed

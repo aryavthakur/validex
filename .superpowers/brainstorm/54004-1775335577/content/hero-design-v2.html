@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validex Hero v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; font-family: 'Inter', system-ui, sans-serif; color: #f0ede8; height: 100vh; overflow: hidden; }
+
+  nav {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 48px; height: 56px;
+  }
+  .nav-logo { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.03em; }
+  .nav-right { display: flex; align-items: center; gap: 28px; }
+  .nav-link { font-size: 12px; color: #444; }
+  .nav-cta { font-size: 12px; font-weight: 700; color: #000; background: #f0ede8; padding: 7px 16px; border-radius: 6px; }
+
+  /* Full viewport hero */
+  .hero {
+    position: relative; width: 100%; height: 100vh;
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: 1fr 1fr;
+    padding-top: 56px;
+  }
+
+  /* CORNER CALLOUTS — ssscript style, large bold text */
+  .callout { padding: 44px 36px; display: flex; flex-direction: column; justify-content: flex-start; }
+  .callout.tl { grid-column:1; grid-row:1; justify-content: flex-start; }
+  .callout.tr { grid-column:3; grid-row:1; justify-content: flex-start; }
+  .callout.bl { grid-column:1; grid-row:2; justify-content: flex-end; }
+  .callout.br { grid-column:3; grid-row:2; justify-content: flex-end; }
+
+  .callout-eyebrow { font-family: monospace; font-size: 9px; color: #333; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+  .callout-title { font-size: 28px; font-weight: 300; color: #888; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 2px; }
+  .callout-title strong { font-weight: 800; color: #f0ede8; display: block; }
+  .callout-sub { font-size: 12px; color: #3a3a3a; line-height: 1.65; margin-top: 10px; max-width: 210px; }
+  .callout-sub b { color: #666; font-weight: 500; }
+
+  /* Center column */
+  .center-col {
+    grid-column: 2; grid-row: 1 / 3;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Molecule — large and dominant */
+  .mol-stage {
+    position: relative;
+    width: 420px; height: 420px;
+    cursor: grab;
+    flex-shrink: 0;
+  }
+  .mol-stage:active { cursor: grabbing; }
+
+  /* Ambient glow behind molecule */
+  .mol-glow {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(200,185,154,0.12) 0%, rgba(200,185,154,0.04) 35%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .mol-glow-green {
+    position: absolute; top: 55%; left: 48%;
+    transform: translate(-50%, -50%);
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  @keyframes mol-spin { from { transform: rotateY(0deg) rotateX(8deg); } to { transform: rotateY(360deg) rotateX(8deg); } }
+  @keyframes mol-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+  .mol-floater { animation: mol-float 5s ease-in-out infinite; }
+  .mol-spinner { animation: mol-spin 18s linear infinite; transform-style: preserve-3d; }
+
+  /* CTA below molecule */
+  .mol-cta {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px; margin-top: -10px;
+  }
+  .mol-tag {
+    font-family: monospace; font-size: 9px; color: #2a2a2a;
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .cta-row { display: flex; gap: 10px; align-items: center; }
+  .btn-p { background: #f0ede8; color: #000; font-size: 13px; font-weight: 800; padding: 11px 22px; border-radius: 7px; letter-spacing: -0.02em; cursor: pointer; }
+  .btn-s { color: #444; font-size: 12px; padding: 11px 16px; border-radius: 7px; border: 1px solid #1a1a1a; cursor: pointer; }
+
+  .divider-stats { display: flex; gap: 32px; padding-top: 14px; border-top: 1px solid #111; }
+  .s-val { font-size: 17px; font-weight: 800; color: #f0ede8; letter-spacing: -0.04em; }
+  .s-lbl { font-family: monospace; font-size: 8px; color: #2a2a2a; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+  /* Mouse-tilt JS effect */
+  .tilt-wrap { transition: transform 0.15s ease; transform-style: preserve-3d; }
+
+  /* Particle dots */
+  .particle { position: absolute; border-radius: 50%; pointer-events: none; }
+  @keyframes p1 { 0%,100%{transform:translate(0,0) scale(1);opacity:0.6} 50%{transform:translate(8px,-12px) scale(1.4);opacity:1} }
+  @keyframes p2 { 0%,100%{transform:translate(0,0) scale(1);opacity:0.4} 50%{transform:translate(-10px,8px) scale(0.7);opacity:0.8} }
+  @keyframes p3 { 0%,100%{transform:translate(0,0);opacity:0.3} 50%{transform:translate(14px,6px);opacity:0.7} }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Validex</div>
+  <div class="nav-right">
+    <span class="nav-link">Features</span>
+    <span class="nav-link">Docs</span>
+    <span class="nav-cta">Run Audit →</span>
+  </div>
+</nav>
+
+<section class="hero">
+
+  <!-- TOP LEFT -->
+  <div class="callout tl">
+    <div class="callout-eyebrow">Statistical integrity</div>
+    <div class="callout-title">
+      Complete<br/>
+      <strong>Audit Rules</strong>
+    </div>
+    <div class="callout-sub">FDR control, normalization checks, batch effects — <b>18+ rules</b> validated automatically.</div>
+  </div>
+
+  <!-- TOP RIGHT -->
+  <div class="callout tr" style="text-align:right;align-items:flex-end;">
+    <div class="callout-eyebrow">AI confidence</div>
+    <div class="callout-title" style="text-align:right;">
+      Groq-powered<br/>
+      <strong>Scoring</strong>
+    </div>
+    <div class="callout-sub" style="text-align:right;margin-left:auto;">Study-aware scoring adjusts to your design, sample size, and validation notes.</div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-col">
+    <div class="mol-stage" id="stage">
+      <div class="mol-glow"></div>
+      <div class="mol-glow-green"></div>
+
+      <!-- Floating particles -->
+      <div class="particle" style="width:4px;height:4px;background:#c8b99a;top:60px;left:80px;animation:p1 3.2s ease-in-out infinite;"></div>
+      <div class="particle" style="width:3px;height:3px;background:#4ade80;top:120px;right:60px;animation:p2 4.1s ease-in-out infinite 0.5s;"></div>
+      <div class="particle" style="width:5px;height:5px;background:#c8b99a;bottom:80px;left:100px;animation:p3 3.7s ease-in-out infinite 1s;opacity:0.5"></div>
+      <div class="particle" style="width:2px;height:2px;background:#fb923c;bottom:140px;right:80px;animation:p1 5s ease-in-out infinite 0.3s;"></div>
+      <div class="particle" style="width:3px;height:3px;background:#4ade80;top:180px;left:40px;animation:p2 4.5s ease-in-out infinite 1.2s;"></div>
+
+      <div class="mol-floater" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+        <div class="tilt-wrap" id="tiltWrap" style="width:380px;height:380px;display:flex;align-items:center;justify-content:center;">
+          <svg id="molSvg" width="380" height="380" viewBox="0 0 380 380" fill="none" style="filter:drop-shadow(0 0 30px rgba(200,185,154,0.18)) drop-shadow(0 0 80px rgba(200,185,154,0.06));">
+
+            <!-- === BONDS === -->
+            <!-- Ring backbone bonds - thick, prominent -->
+            <line x1="190" y1="68" x2="270" y2="115" stroke="#c8b99a" stroke-width="2.5" opacity="0.5"/>
+            <line x1="270" y1="115" x2="268" y2="205" stroke="#c8b99a" stroke-width="2.5" opacity="0.5"/>
+            <line x1="268" y1="205" x2="195" y2="252" stroke="#c8b99a" stroke-width="2.5" opacity="0.5"/>
+            <line x1="195" y1="252" x2="118" y2="208" stroke="#c8b99a" stroke-width="2.5" opacity="0.5"/>
+            <line x1="118" y1="208" x2="114" y2="118" stroke="#c8b99a" stroke-width="2.5" opacity="0.5"/>
+            <line x1="114" y1="118" x2="190" y2="68" stroke="#c8b99a" stroke-width="2.5" opacity="0.5"/>
+
+            <!-- Double bond indicators -->
+            <line x1="192" y1="73" x2="267" y2="118" stroke="#c8b99a" stroke-width="1" opacity="0.2"/>
+            <line x1="119" y1="123" x2="191" y2="74" stroke="#c8b99a" stroke-width="1" opacity="0.2"/>
+
+            <!-- Branch bonds -->
+            <line x1="190" y1="68" x2="190" y2="28" stroke="#fb923c" stroke-width="2" opacity="0.5"/>
+            <line x1="270" y1="115" x2="316" y2="94" stroke="#fb923c" stroke-width="2" opacity="0.5"/>
+            <line x1="268" y1="205" x2="318" y2="228" stroke="#fb923c" stroke-width="2" opacity="0.5"/>
+            <line x1="195" y1="252" x2="195" y2="298" stroke="#4ade80" stroke-width="2" opacity="0.5"/>
+            <line x1="118" y1="208" x2="68" y2="232" stroke="#4ade80" stroke-width="2" opacity="0.5"/>
+            <line x1="114" y1="118" x2="62" y2="96" stroke="#fb923c" stroke-width="2" opacity="0.4"/>
+
+            <!-- H bonds (thin) -->
+            <line x1="190" y1="68" x2="162" y2="40" stroke="#2a2a2a" stroke-width="1.5" opacity="0.6"/>
+            <line x1="268" y1="205" x2="292" y2="230" stroke="#2a2a2a" stroke-width="1.5" opacity="0.5"/>
+            <line x1="114" y1="118" x2="86" y2="100" stroke="#2a2a2a" stroke-width="1.5" opacity="0.5"/>
+
+            <!-- === CARBON ATOMS (ring) — warm silver === -->
+            <!-- Outer ring glow -->
+            <circle cx="190" cy="68" r="18" fill="rgba(200,185,154,0.06)"/>
+            <circle cx="270" cy="115" r="18" fill="rgba(200,185,154,0.06)"/>
+            <circle cx="268" cy="205" r="18" fill="rgba(200,185,154,0.06)"/>
+            <circle cx="195" cy="252" r="18" fill="rgba(200,185,154,0.06)"/>
+            <circle cx="118" cy="208" r="18" fill="rgba(200,185,154,0.06)"/>
+            <circle cx="114" cy="118" r="18" fill="rgba(200,185,154,0.06)"/>
+
+            <!-- Carbon bodies -->
+            <circle cx="190" cy="68" r="12" fill="#111" stroke="#c8b99a" stroke-width="2"/>
+            <circle cx="190" cy="68" r="6" fill="#c8b99a"/>
+
+            <circle cx="270" cy="115" r="12" fill="#111" stroke="#c8b99a" stroke-width="2"/>
+            <circle cx="270" cy="115" r="6" fill="#c8b99a"/>
+
+            <circle cx="268" cy="205" r="12" fill="#111" stroke="#c8b99a" stroke-width="2"/>
+            <circle cx="268" cy="205" r="6" fill="#c8b99a"/>
+
+            <circle cx="195" cy="252" r="12" fill="#111" stroke="#c8b99a" stroke-width="2"/>
+            <circle cx="195" cy="252" r="6" fill="#c8b99a"/>
+
+            <circle cx="118" cy="208" r="12" fill="#111" stroke="#c8b99a" stroke-width="2"/>
+            <circle cx="118" cy="208" r="6" fill="#c8b99a"/>
+
+            <circle cx="114" cy="118" r="12" fill="#111" stroke="#c8b99a" stroke-width="2"/>
+            <circle cx="114" cy="118" r="6" fill="#c8b99a"/>
+
+            <!-- === OXYGEN ATOMS — orange glow === -->
+            <circle cx="190" cy="28" r="8" fill="#111" stroke="rgba(251,146,60,0.9)" stroke-width="2"/>
+            <circle cx="190" cy="28" r="4" fill="rgba(251,146,60,0.8)"/>
+            <circle cx="190" cy="28" r="10" fill="rgba(251,146,60,0.1)"/>
+
+            <circle cx="316" cy="94" r="8" fill="#111" stroke="rgba(251,146,60,0.9)" stroke-width="2"/>
+            <circle cx="316" cy="94" r="4" fill="rgba(251,146,60,0.8)"/>
+            <circle cx="316" cy="94" r="10" fill="rgba(251,146,60,0.1)"/>
+
+            <circle cx="318" cy="228" r="8" fill="#111" stroke="rgba(251,146,60,0.9)" stroke-width="2"/>
+            <circle cx="318" cy="228" r="4" fill="rgba(251,146,60,0.8)"/>
+
+            <!-- === NITROGEN ATOM — green glow === -->
+            <circle cx="195" cy="298" r="9" fill="#111" stroke="rgba(74,222,128,0.9)" stroke-width="2"/>
+            <circle cx="195" cy="298" r="5" fill="rgba(74,222,128,0.8)"/>
+            <circle cx="195" cy="298" r="12" fill="rgba(74,222,128,0.08)"/>
+
+            <circle cx="68" cy="232" r="9" fill="#111" stroke="rgba(74,222,128,0.9)" stroke-width="2"/>
+            <circle cx="68" cy="232" r="5" fill="rgba(74,222,128,0.8)"/>
+            <circle cx="68" cy="232" r="12" fill="rgba(74,222,128,0.08)"/>
+
+            <!-- Oxygen (branch 2) -->
+            <circle cx="62" cy="96" r="7" fill="#111" stroke="rgba(251,146,60,0.8)" stroke-width="1.5"/>
+            <circle cx="62" cy="96" r="3.5" fill="rgba(251,146,60,0.7)"/>
+
+            <!-- H atoms (tiny dark) -->
+            <circle cx="162" cy="40" r="5" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="1.5"/>
+            <circle cx="292" cy="230" r="5" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="1.5"/>
+            <circle cx="86" cy="100" r="5" fill="#0a0a0a" stroke="#2a2a2a" stroke-width="1.5"/>
+
+            <!-- Center ring indicator -->
+            <circle cx="192" cy="163" r="36" fill="none" stroke="rgba(200,185,154,0.06)" stroke-width="1" stroke-dasharray="4 6"/>
+
+            <!-- Atom labels -->
+            <text x="186" y="23" fill="rgba(251,146,60,0.6)" font-family="monospace" font-size="8" font-weight="bold">O</text>
+            <text x="311" y="90" fill="rgba(251,146,60,0.6)" font-family="monospace" font-size="8" font-weight="bold">O</text>
+            <text x="313" y="224" fill="rgba(251,146,60,0.6)" font-family="monospace" font-size="8" font-weight="bold">O</text>
+            <text x="190" y="314" fill="rgba(74,222,128,0.7)" font-family="monospace" font-size="8" font-weight="bold">N</text>
+            <text x="63" y="248" fill="rgba(74,222,128,0.7)" font-family="monospace" font-size="8" font-weight="bold">N</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="mol-cta">
+      <div class="mol-tag">Metabolomics · AI-Powered · Always Free</div>
+      <div class="cta-row">
+        <div class="btn-p">Run your first audit →</div>
+        <div class="btn-s">See example</div>
+      </div>
+      <div class="divider-stats">
+        <div><div class="s-val">&lt;3s</div><div class="s-lbl">Audit time</div></div>
+        <div><div class="s-val">18+</div><div class="s-lbl">Rules</div></div>
+        <div><div class="s-val">Free</div><div class="s-lbl">Always</div></div>
+        <div><div class="s-val">AI</div><div class="s-lbl">Groq</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM LEFT -->
+  <div class="callout bl">
+    <div class="callout-eyebrow">Schema detection</div>
+    <div class="callout-title">
+      Any column<br/>
+      <strong>Naming</strong>
+    </div>
+    <div class="callout-sub">Maps <b>pval</b>, <b>P_Value</b>, <b>adj.p.BH</b> to canonical fields. Zero config.</div>
+  </div>
+
+  <!-- BOTTOM RIGHT -->
+  <div class="callout br" style="text-align:right;align-items:flex-end;">
+    <div class="callout-eyebrow">Data cleaning</div>
+    <div class="callout-title" style="text-align:right;">
+      Review before<br/>
+      <strong>Download</strong>
+    </div>
+    <div class="callout-sub" style="text-align:right;margin-left:auto;">Outliers, duplicates, missing values — <b>you approve</b> every removal.</div>
+  </div>
+
+</section>
+
+<script>
+  // Mouse tilt effect
+  const stage = document.getElementById('stage');
+  const wrap = document.getElementById('tiltWrap');
+  let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+  let raf;
+
+  document.addEventListener('mousemove', e => {
+    const rect = stage.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (window.innerWidth / 2);
+    const dy = (e.clientY - cy) / (window.innerHeight / 2);
+    targetX = dy * -22;
+    targetY = dx * 22;
+  });
+
+  // Drag rotation
+  let isDragging = false, lastMX = 0, lastMY = 0, dragRotX = 0, dragRotY = 0;
+  let baseRotX = 0, baseRotY = 0;
+
+  stage.addEventListener('mousedown', e => {
+    isDragging = true;
+    lastMX = e.clientX; lastMY = e.clientY;
+  });
+  document.addEventListener('mouseup', () => { isDragging = false; });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    dragRotY += (e.clientX - lastMX) * 0.5;
+    dragRotX -= (e.clientY - lastMY) * 0.5;
+    lastMX = e.clientX; lastMY = e.clientY;
+  });
+
+  function animate() {
+    currentX += (targetX - currentX) * 0.08;
+    currentY += (targetY - currentY) * 0.08;
+    const rx = currentX + dragRotX;
+    const ry = currentY + dragRotY;
+    wrap.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+    // Slowly auto-drift drag back
+    if (!isDragging) {
+      dragRotX *= 0.97;
+      dragRotY *= 0.97;
+    }
+    raf = requestAnimationFrame(animate);
+  }
+  animate();
+</script>
+</body>
+</html>

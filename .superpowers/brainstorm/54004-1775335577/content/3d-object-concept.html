@@ -1,0 +1,83 @@
+<h2>What should the 3D hero object represent?</h2>
+<p class="subtitle">ssscript uses their logo as a 3D icon. Validex needs something that represents metabolomics data auditing.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="molecule" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:28px;display:flex;align-items:center;justify-content:center;min-height:160px;font-family:sans-serif;">
+      <!-- SVG molecule mockup -->
+      <div style="position:relative;width:120px;height:120px;">
+        <div style="position:absolute;width:120px;height:120px;background:linear-gradient(135deg,#1a1a1a,#111);border-radius:26px;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.05);"></div>
+        <svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);" width="80" height="80" viewBox="0 0 80 80">
+          <!-- Molecule nodes -->
+          <circle cx="40" cy="20" r="8" fill="#c8b99a" opacity="0.9"/>
+          <circle cx="60" cy="40" r="8" fill="#c8b99a" opacity="0.9"/>
+          <circle cx="48" cy="60" r="8" fill="#c8b99a" opacity="0.9"/>
+          <circle cx="22" cy="55" r="6" fill="#888" opacity="0.7"/>
+          <circle cx="16" cy="32" r="6" fill="#888" opacity="0.7"/>
+          <!-- Bonds -->
+          <line x1="40" y1="20" x2="60" y2="40" stroke="#c8b99a" stroke-width="2" opacity="0.5"/>
+          <line x1="60" y1="40" x2="48" y2="60" stroke="#c8b99a" stroke-width="2" opacity="0.5"/>
+          <line x1="48" y1="60" x2="22" y2="55" stroke="#888" stroke-width="1.5" opacity="0.4"/>
+          <line x1="22" y1="55" x2="16" y2="32" stroke="#888" stroke-width="1.5" opacity="0.4"/>
+          <line x1="16" y1="32" x2="40" y2="20" stroke="#888" stroke-width="1.5" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3D Molecule</h3>
+      <p>A rotating metabolite molecule (ball-and-stick model). Spins idly, tilts toward mouse. Directly represents metabolomics.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="icon-3d" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:28px;display:flex;align-items:center;justify-content:center;min-height:160px;font-family:sans-serif;">
+      <!-- Validex logo icon mockup - like ssscript: rounded square with logo -->
+      <div style="position:relative;width:120px;height:120px;">
+        <div style="position:absolute;width:120px;height:120px;background:linear-gradient(145deg,#1e1e1e,#0d0d0d);border-radius:26px;box-shadow:0 20px 60px rgba(0,0,0,0.9),0 2px 4px rgba(255,255,255,0.03),inset 0 1px 0 rgba(255,255,255,0.06);"></div>
+        <!-- V + checkmark icon -->
+        <svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);" width="68" height="68" viewBox="0 0 68 68">
+          <!-- V shape -->
+          <path d="M12 18 L34 50 L56 18" stroke="#c8b99a" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- small checkmark overlay -->
+          <circle cx="34" cy="34" r="12" fill="#1a1a1a" stroke="#c8b99a" stroke-width="1.5" opacity="0.8"/>
+          <path d="M28 34 L32 38 L40 30" stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3D App Icon (ssscript-style)</h3>
+      <p>Validex logo extruded as a 3D rounded-square app icon. Exactly like ssscript — spins, tilts on hover, catches light.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="data-crystal" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0a0a;padding:28px;display:flex;align-items:center;justify-content:center;min-height:160px;font-family:sans-serif;">
+      <!-- Crystal/gem shape mockup -->
+      <div style="position:relative;width:120px;height:120px;">
+        <div style="position:absolute;width:120px;height:120px;background:linear-gradient(135deg,#0f0f0f,#0a0a0a);border-radius:50%;box-shadow:0 20px 60px rgba(0,0,0,0.8);"></div>
+        <svg style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);" width="80" height="80" viewBox="0 0 80 80">
+          <!-- Crystal/gem shape -->
+          <polygon points="40,8 68,28 60,65 20,65 12,28" fill="none" stroke="#c8b99a" stroke-width="1.5" opacity="0.6"/>
+          <polygon points="40,8 68,28 40,22" fill="#c8b99a" opacity="0.15"/>
+          <polygon points="40,8 12,28 40,22" fill="#c8b99a" opacity="0.1"/>
+          <polygon points="40,22 68,28 60,65 40,48" fill="#c8b99a" opacity="0.08"/>
+          <polygon points="40,22 12,28 20,65 40,48" fill="#c8b99a" opacity="0.12"/>
+          <polygon points="40,48 60,65 20,65" fill="#c8b99a" opacity="0.18"/>
+          <!-- inner glow -->
+          <circle cx="40" cy="35" r="6" fill="#4ade80" opacity="0.3"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3D Data Crystal</h3>
+      <p>A glowing geometric crystal — abstract, represents data purity/clarity after validation. Rotates and refracts light.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:24px;padding:16px;background:#111;border:1px solid #1f1f1f;border-radius:8px;">
+  <div class="label">Implementation note</div>
+  <p style="margin:8px 0 0;font-size:13px;color:#888;">All options use <strong style="color:#c8b99a;">React Three Fiber + @react-three/drei</strong> (Three.js for React). The object floats, auto-rotates slowly, and tilts toward the mouse cursor — same interaction as ssscript.app.</p>
+</div>

@@ -2,96 +2,99 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
+gsap.registerPlugin(ScrollTrigger);
+
 const STEPS = [
   'RAW RESULTS',
   'STATISTICAL TABLE',
   'VALIDEX AUDIT',
   'FLAGGED ISSUES',
-  'VALIDITY REPORT',
+  'VALIDITY REPORT'
 ];
 
 export default function WorkflowSection() {
   const sectionRef = useRef(null);
   const helixRef = useRef(null);
   const stepsRef = useRef([]);
-  const triggersRef = useRef([]);
 
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const mobile = window.innerWidth < 1000;
     if (reduced) return;
 
-    gsap.set(stepsRef.current, { opacity: 0, x: -20 });
+    const ctx = gsap.context(() => {
+      gsap.set(stepsRef.current, { autoAlpha: 0, y: 24 });
+      gsap.set(helixRef.current, { y: 80, rotate: -2 });
 
-    const handleDone = () => {
-      if (!mobile && helixRef.current) {
-        const t1 = ScrollTrigger.create({
-          trigger: sectionRef.current,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 0.5,
-          onUpdate: self => {
-            gsap.set(helixRef.current, { y: -60 + self.progress * 120 });
-          },
-        });
-        triggersRef.current.push(t1);
-      }
-
-      const t2 = ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top 65%',
+      const trigger = ScrollTrigger.create({
+        trigger: section,
+        start: 'top 70%',
         once: true,
         onEnter: () => {
           gsap.to(stepsRef.current, {
-            opacity: 1,
-            x: 0,
-            duration: 0.7,
-            stagger: 0.1,
-            ease: 'power3.out',
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.75,
+            stagger: 0.09,
+            ease: 'power3.out'
           });
-        },
+        }
       });
-      triggersRef.current.push(t2);
-    };
 
-    window.addEventListener('preloader:done', handleDone);
-    return () => {
-      window.removeEventListener('preloader:done', handleDone);
-      triggersRef.current.forEach(t => t.kill());
-    };
+      const parallax = gsap.to(helixRef.current, {
+        y: -70,
+        rotate: 2,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 0.6
+        }
+      });
+
+      return () => {
+        trigger.kill();
+        parallax.kill();
+      };
+    }, section);
+
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section className="section__vision" ref={sectionRef} id="workflow">
-      <div className="vision__decorative-icons">
-        <img
-          ref={helixRef}
-          src="/assets/images/helix@2x.png"
-          alt=""
-          className="helix-bg"
-          loading="lazy"
-        />
+    <section className="workflow-scene" ref={sectionRef} id="workflow">
+      <div className="workflow-scene__atmosphere" />
+      <img
+        ref={helixRef}
+        className="workflow-scene__helix"
+        src="/assets/images/helix@2x.png"
+        alt=""
+        loading="lazy"
+      />
+
+      <div className="workflow-scene__copy">
+        <p className="type__hints">AUDIT PIPELINE</p>
+        <h2 className="type__title-main">
+          FROM RAW DATA<br />
+          TO VALIDITY REPORT
+        </h2>
       </div>
-      <div className="wrapper">
-        <div className="vision__block">
-          <p className="type__hints">AUDIT PIPELINE</p>
-          <h2 className="type__title-secondary">FROM RAW DATA TO VALIDITY REPORT</h2>
-          <ol className="workflow__steps">
-            {STEPS.map((step, i) => (
-              <li
-                key={step}
-                className="workflow__step"
-                ref={el => { stepsRef.current[i] = el; }}
-              >
-                <span className="step__label type__body">{step}</span>
-                {i < STEPS.length - 1 && (
-                  <span className="step__arrow" aria-hidden="true">→</span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
+
+      <ol className="workflow-scene__steps">
+        {STEPS.map((step, index) => (
+          <li
+            key={step}
+            className="workflow-scene__step"
+            ref={el => { stepsRef.current[index] = el; }}
+          >
+            <span className="type__body">{step}</span>
+            {index < STEPS.length - 1 && <span className="workflow-scene__arrow">→</span>}
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

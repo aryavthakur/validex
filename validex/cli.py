@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import socket
 import subprocess
 import sys
@@ -11,6 +12,7 @@ from typing import Any
 import uvicorn
 
 from .ai.ollama_client import OllamaClient, OllamaError
+from .audit import audit_dataframe
 from .config import config_path, load_config, save_config
 from .server import create_app
 
@@ -130,6 +132,65 @@ def command_config(args: argparse.Namespace, config: dict[str, Any]) -> int:
     return 2
 
 
+def command_audit(args: argparse.Namespace) -> int:
+    """Run a schema audit on a CSV file and print results to the terminal."""
+    import pandas as pd
+
+    csv_path: str = args.input
+    report_path: str | None = getattr(args, "output", None)
+
+    if not os.path.exists(csv_path):
+        print(f"Error: file not found: {csv_path}")
+        return 1
+
+    df = pd.read_csv(csv_path)
+    result = audit_dataframe(df)
+
+    score = result["confidence"]
+    confidence = result["audit_confidence"]
+    flags = result["flags"]
+    detected = result["detected"]
+
+    print(f"Validex score: {score}/100")
+    print(f"Audit confidence: {confidence}")
+    print()
+
+    # Detected schema
+    print("Detected schema:")
+    for field, col in detected.items():
+        if col is not None:
+            print(f"  {field}: {col}")
+    missing = [f for f, c in detected.items() if c is None]
+    if missing:
+        print(f"  Missing: {', '.join(missing)}")
+    print()
+
+    # Findings summary
+    if flags:
+        print("Findings:")
+        for flag in flags:
+            sev = flag.get("severity", "")
+            title = flag.get("title", "")
+            print(f"  [{sev}] {title}")
+        print()
+    else:
+        print("Findings: none")
+        print()
+
+    # Optionally write report
+    if report_path:
+        from .audit import run_audit
+        report_dir = os.path.dirname(report_path)
+        if report_dir:
+            os.makedirs(report_dir, exist_ok=True)
+        # Derive json path alongside report
+        json_path = os.path.splitext(report_path)[0] + ".json"
+        run_audit(csv_path=csv_path, report_path=report_path, json_path=json_path)
+        print(f"Report written to: {report_path}")
+
+    return 0
+
+
 def command_run(config: dict[str, Any]) -> int:
     ensure_local_ai(config)
     host = config.get("host") or "127.0.0.1"
@@ -161,6 +222,9 @@ def build_parser() -> argparse.ArgumentParser:
     config = subparsers.add_parser("config")
     config_sub = config.add_subparsers(dest="config_command", required=True)
     config_sub.add_parser("show")
+    audit = subparsers.add_parser("audit", help="Audit a metabolomics result CSV.")
+    audit.add_argument("input", help="Path to the CSV file to audit.")
+    audit.add_argument("--output", "-o", default=None, help="Optional path to write the Markdown report.")
     return parser
 
 
@@ -174,6 +238,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_model(args, config)
     if args.command == "config":
         return command_config(args, config)
+    if args.command == "audit":
+        return command_audit(args)
     return command_run(config)
 
 

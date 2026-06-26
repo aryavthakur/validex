@@ -1,9 +1,12 @@
 import { useState, useMemo, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { useInView } from "framer-motion";
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine,
+  ResponsiveContainer, Legend, CartesianGrid,
+} from "recharts";
 
 // ── STATS UTILITIES ───────────────────────────────────────────────────────────
 
-// Standard normal CDF (Abramowitz & Stegun approximation)
 function normCDF(x) {
   const sign = x < 0 ? -1 : 1;
   const ax = Math.abs(x) / Math.SQRT2;
@@ -12,7 +15,6 @@ function normCDF(x) {
   return 0.5 * (1 + sign * (1 - poly * Math.exp(-ax * ax)));
 }
 
-// Inverse normal CDF (rational approximation — Peter Acklam)
 function normInv(p) {
   const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.383577518672690e2, -3.066479806614716e1, 2.506628277459239];
   const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
@@ -33,15 +35,13 @@ function normInv(p) {
   return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
 }
 
-// Power of a two-sample t-test (normal approximation) with Bonferroni correction
 function computePower(n, d, alpha, nTests) {
   const alphaAdj = alpha / nTests;
   const zCrit = normInv(1 - alphaAdj / 2);
   const lambda = d * Math.sqrt(n / 2);
-  return normCDF(lambda - zCrit) + normCDF(-lambda - zCrit);
+  return Math.max(0, Math.min(1, normCDF(lambda - zCrit) + normCDF(-lambda - zCrit)));
 }
 
-// n required to reach target power (binary search)
 function nForPower(target, d, alpha, nTests) {
   let lo = 2, hi = 5000;
   for (let i = 0; i < 40; i++) {
@@ -51,66 +51,52 @@ function nForPower(target, d, alpha, nTests) {
   return hi;
 }
 
-// Estimate median |log2FC| from histogram
 function medianAbsLog2FC(histogram) {
   if (!histogram) return null;
   const { counts, bin_edges } = histogram;
-  const midpoints = counts.map((_, i) => Math.abs((bin_edges[i] + bin_edges[i + 1]) / 2));
   const total = counts.reduce((s, c) => s + c, 0);
   let cum = 0;
   for (let i = 0; i < counts.length; i++) {
     cum += counts[i];
-    if (cum >= total / 2) return midpoints[i];
+    if (cum >= total / 2) return Math.abs((bin_edges[i] + bin_edges[i + 1]) / 2);
   }
-  return midpoints[midpoints.length - 1];
+  return null;
 }
 
-// ── POWER BAR CHART ───────────────────────────────────────────────────────────
+// ── DESIGN TOKENS ─────────────────────────────────────────────────────────────
 
-const CURVE_NS = [4, 6, 8, 10, 15, 20, 30, 50, 100];
+const C = {
+  dim:    "rgba(240,237,232,0.28)",
+  muted:  "rgba(240,237,232,0.5)",
+  border: "rgba(255,255,255,0.07)",
+  green:  "#4ade80",
+  amber:  "#f59e0b",
+  red:    "#f87171",
+  warm:   "#c8b99a",
+};
 
-function PowerBar({ n, power, isSelected, index, inView }) {
-  const pct = Math.round(power * 100);
-  const color = power >= 0.8 ? "#4ade80" : power >= 0.6 ? "#f59e0b" : "#f87171";
+// ── CUSTOM TOOLTIP ────────────────────────────────────────────────────────────
+
+function PowerTooltip({ active, payload, label, detectedD }) {
+  if (!active || !payload?.length) return null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
-      <div style={{
-        fontFamily: "var(--font-mono)", fontSize: 9, width: 32, textAlign: "right",
-        color: isSelected ? "var(--text)" : "var(--text-dim)",
-        fontWeight: isSelected ? 600 : 400,
-      }}>
-        n={n}
+    <div style={{
+      background: "#1a1a1a", border: `1px solid ${C.border}`,
+      borderRadius: 10, padding: "10px 14px",
+      fontFamily: "monospace", fontSize: 11, minWidth: 160,
+    }}>
+      <div style={{ color: C.dim, marginBottom: 8, letterSpacing: "0.06em" }}>
+        n = {label} per group
       </div>
-      <div style={{
-        flex: 1, position: "relative", height: isSelected ? 12 : 8,
-        background: "rgba(255,255,255,0.05)", borderRadius: 99, overflow: "hidden",
-      }}>
-        {/* 80% threshold line */}
-        <div style={{
-          position: "absolute", left: "80%", top: 0, bottom: 0,
-          width: 1, background: "rgba(255,255,255,0.12)", zIndex: 1,
-        }} />
-        <motion.div
-          initial={{ width: 0 }}
-          animate={inView ? { width: `${pct}%` } : { width: 0 }}
-          transition={{ duration: 0.7, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            height: "100%", borderRadius: 99,
-            background: color,
-            boxShadow: isSelected ? `0 0 8px ${color}88` : "none",
-          }}
-        />
-      </div>
-      <div style={{
-        fontFamily: "var(--font-mono)", fontSize: 10, width: 34,
-        color: isSelected ? color : "var(--text-dim)",
-        fontWeight: isSelected ? 600 : 400,
-      }}>
-        {pct}%
-      </div>
-      {power >= 0.8 && (
-        <span style={{ fontSize: 9, color: "#4ade80" }}>✓</span>
-      )}
+      {payload
+        .slice()
+        .sort((a, b) => b.value - a.value)
+        .map((p, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, color: p.color, marginBottom: 3 }}>
+            <span>{p.name}</span>
+            <span style={{ fontWeight: 600 }}>{Math.round(p.value * 100)}%</span>
+          </div>
+        ))}
     </div>
   );
 }
@@ -119,54 +105,67 @@ function PowerBar({ n, power, isSelected, index, inView }) {
 
 export function PowerAnalysis({ histogram, overview, context }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
+  useInView(ref, { once: true, margin: "-40px" });
 
   const nFeatures = overview?.n_rows ?? 100;
-  const alpha = parseFloat(context?.alpha ?? "0.05");
-  const defaultN = context?.small_n ? 6 : 20;
+  const alpha     = parseFloat(context?.alpha ?? "0.05");
+  const defaultN  = context?.small_n ? 6 : 20;
   const [nPerGroup, setNPerGroup] = useState(defaultN);
 
-  const effectSize = useMemo(() => medianAbsLog2FC(histogram), [histogram]);
-  const d = effectSize ?? 0.5; // fallback to moderate effect if no histogram
+  const detectedD = useMemo(() => medianAbsLog2FC(histogram) ?? 0.5, [histogram]);
 
   const alphaAdj = alpha / nFeatures;
+  const fmtAlpha = alphaAdj < 0.001 ? alphaAdj.toExponential(1) : alphaAdj.toFixed(4);
 
   const currentPower = useMemo(
-    () => computePower(nPerGroup, d, alpha, nFeatures),
-    [nPerGroup, d, alpha, nFeatures]
+    () => computePower(nPerGroup, detectedD, alpha, nFeatures),
+    [nPerGroup, detectedD, alpha, nFeatures]
   );
 
-  const n80 = useMemo(() => nForPower(0.8, d, alpha, nFeatures), [d, alpha, nFeatures]);
-  const n90 = useMemo(() => nForPower(0.9, d, alpha, nFeatures), [d, alpha, nFeatures]);
+  const n80 = useMemo(() => nForPower(0.8, detectedD, alpha, nFeatures), [detectedD, alpha, nFeatures]);
+  const n90 = useMemo(() => nForPower(0.9, detectedD, alpha, nFeatures), [detectedD, alpha, nFeatures]);
 
-  const curveData = useMemo(
-    () => CURVE_NS.map(n => ({ n, power: computePower(n, d, alpha, nFeatures) })),
-    [d, alpha, nFeatures]
-  );
+  // Generate smooth curve (n=3 to 120)
+  const curveData = useMemo(() => {
+    const points = [];
+    for (let n = 3; n <= 120; n++) {
+      points.push({
+        n,
+        small:    computePower(n, 0.2, alpha, nFeatures),
+        medium:   computePower(n, 0.5, alpha, nFeatures),
+        detected: computePower(n, detectedD, alpha, nFeatures),
+        large:    computePower(n, 0.8, alpha, nFeatures),
+      });
+    }
+    return points;
+  }, [detectedD, alpha, nFeatures]);
 
   const verdict = currentPower >= 0.8
-    ? { label: "Adequately powered", color: "#4ade80", icon: "✓" }
+    ? { label: "Adequately powered", color: C.green,  icon: "✓" }
     : currentPower >= 0.6
-    ? { label: "Marginal — consider increasing n", color: "#f59e0b", icon: "⚠" }
-    : { label: "Underpowered — results may be unreliable", color: "#f87171", icon: "✗" };
+    ? { label: "Marginal",           color: C.amber,  icon: "⚠" }
+    : { label: "Underpowered",       color: C.red,    icon: "✗" };
 
-  const fmtAlpha = alphaAdj < 0.001
-    ? alphaAdj.toExponential(1)
-    : alphaAdj.toFixed(4);
+  const LINES = [
+    { key: "small",    name: "Small (d=0.2)",                color: "rgba(248,113,113,0.5)", dash: "4 2" },
+    { key: "medium",   name: "Medium (d=0.5)",               color: C.amber,                 dash: "4 2" },
+    { key: "detected", name: `Detected (d=${detectedD.toFixed(2)})`, color: C.green,         dash: "" },
+    { key: "large",    name: "Large (d=0.8)",                color: C.warm,                  dash: "4 2" },
+  ];
 
   return (
     <div ref={ref}>
       <div className="card-label" style={{ marginBottom: 20 }}>Statistical Power Analysis</div>
 
-      {/* Parameters summary */}
+      {/* Parameters */}
       <div style={{
         display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1,
         background: "var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 24,
       }}>
         {[
-          { label: "Effect size (median |log₂FC|)", value: effectSize != null ? effectSize.toFixed(2) : "n/a", sub: "Cohen's d proxy" },
-          { label: "Features (tests)", value: nFeatures.toLocaleString(), sub: `Bonferroni α = ${fmtAlpha}` },
-          { label: "Significance level", value: `α = ${alpha}`, sub: "as specified" },
+          { label: "Effect size (median |log₂FC|)", value: detectedD.toFixed(2), sub: "Cohen's d proxy" },
+          { label: "Features tested",               value: nFeatures.toLocaleString(), sub: `Bonferroni α = ${fmtAlpha}` },
+          { label: "Significance level",             value: `α = ${alpha}`, sub: "as specified" },
         ].map((p, i) => (
           <div key={i} style={{ background: "var(--bg-raised)", padding: "12px 14px" }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 4 }}>{p.label}</div>
@@ -176,7 +175,7 @@ export function PowerAnalysis({ histogram, overview, context }) {
         ))}
       </div>
 
-      {/* n slider */}
+      {/* Slider */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
           <label style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
@@ -185,12 +184,12 @@ export function PowerAnalysis({ histogram, overview, context }) {
           <span style={{ fontFamily: "var(--font-serif)", fontSize: 24, color: "var(--text)" }}>{nPerGroup}</span>
         </div>
         <input
-          type="range" min={3} max={150} step={1} value={nPerGroup}
+          type="range" min={3} max={120} step={1} value={nPerGroup}
           onChange={e => setNPerGroup(Number(e.target.value))}
           style={{ width: "100%" }}
         />
         <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>
-          <span>n=3</span><span>n=150</span>
+          <span>n=3</span><span>n=120</span>
         </div>
       </div>
 
@@ -198,8 +197,7 @@ export function PowerAnalysis({ histogram, overview, context }) {
       <div style={{
         display: "flex", alignItems: "center", gap: 14,
         padding: "14px 18px", borderRadius: 10, marginBottom: 24,
-        background: `${verdict.color}11`,
-        border: `1px solid ${verdict.color}33`,
+        background: `${verdict.color}11`, border: `1px solid ${verdict.color}33`,
       }}>
         <div style={{
           width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
@@ -214,36 +212,79 @@ export function PowerAnalysis({ histogram, overview, context }) {
             {verdict.icon} {verdict.label}
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
-            At n={nPerGroup} per group, power = {Math.round(currentPower * 100)}% for the median effect size (d={d.toFixed(2)}).
-            {currentPower < 0.8 && ` Increase to n≥${n80} for 80% power, n≥${n90} for 90% power.`}
-            {currentPower >= 0.8 && " This study is adequately powered to detect the typical observed effect."}
+            Power = {Math.round(currentPower * 100)}% at n={nPerGroup} for the detected effect (d={detectedD.toFixed(2)}).
+            {currentPower < 0.8 && ` Need n≥${n80} for 80% power, n≥${n90} for 90%.`}
+            {currentPower >= 0.8 && " Adequately powered for the observed effect size."}
           </div>
         </div>
       </div>
 
-      {/* Power curve */}
+      {/* Power curve chart */}
       <div style={{ marginBottom: 8 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
-            Power by sample size
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 16, height: 1, background: "rgba(255,255,255,0.15)" }} />
-            80% threshold
-          </div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 16 }}>
+          Power curve — effect size comparison
         </div>
-        {curveData.map(({ n, power }, i) => (
-          <PowerBar
-            key={n} n={n} power={power}
-            isSelected={n === nPerGroup || (i < curveData.length - 1 && nPerGroup >= n && nPerGroup < curveData[i + 1].n)}
-            index={i} inView={inView}
-          />
-        ))}
+
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={curveData} margin={{ top: 4, right: 16, bottom: 4, left: -8 }}>
+            <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="n"
+              tick={{ fill: C.dim, fontSize: 9, fontFamily: "monospace" }}
+              axisLine={{ stroke: C.border }}
+              tickLine={false}
+              label={{ value: "n per group", position: "insideBottom", offset: -2, fill: C.dim, fontSize: 9, fontFamily: "monospace" }}
+            />
+            <YAxis
+              tickFormatter={v => `${Math.round(v * 100)}%`}
+              domain={[0, 1]}
+              tick={{ fill: C.dim, fontSize: 9, fontFamily: "monospace" }}
+              axisLine={false}
+              tickLine={false}
+              width={36}
+            />
+            <Tooltip content={<PowerTooltip detectedD={detectedD} />} />
+
+            {/* 80% threshold line */}
+            <ReferenceLine
+              y={0.8} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 3"
+              label={{ value: "80%", position: "right", fill: C.dim, fontSize: 9, fontFamily: "monospace" }}
+            />
+            {/* Current n line */}
+            <ReferenceLine
+              x={nPerGroup} stroke={verdict.color} strokeDasharray="4 3" strokeWidth={1.5}
+              label={{ value: `n=${nPerGroup}`, position: "top", fill: verdict.color, fontSize: 9, fontFamily: "monospace" }}
+            />
+
+            {LINES.map(l => (
+              <Line
+                key={l.key}
+                type="monotone"
+                dataKey={l.key}
+                name={l.name}
+                stroke={l.color}
+                strokeWidth={l.key === "detected" ? 2.5 : 1.5}
+                strokeDasharray={l.dash}
+                dot={false}
+                activeDot={{ r: 3, fill: l.color }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 10, paddingLeft: 28, fontFamily: "monospace", fontSize: 10 }}>
+          {LINES.map(l => (
+            <span key={l.key} style={{ display: "flex", alignItems: "center", gap: 5, color: C.dim }}>
+              <span style={{ width: 16, height: 2, background: l.color, display: "inline-block", borderRadius: 1 }} />
+              <span style={{ color: l.key === "detected" ? l.color : C.dim }}>{l.name}</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11, color: "var(--text-dim)", lineHeight: 1.7 }}>
-        Power computed for two-sample t-test with Bonferroni correction across {nFeatures} tests.
-        Effect size estimated from median |log₂FC| in your dataset. True power depends on variance structure and distributional assumptions.
+        Two-sample t-test with Bonferroni correction across {nFeatures} features. Effect size from median |log₂FC|. Drag the slider to explore sample size scenarios.
       </div>
     </div>
   );

@@ -1,0 +1,100 @@
+{
+  "complete_standard.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": "p_value",
+    "fdr": "FDR",
+    "annotation": "Annotation"
+  },
+  "missing_pvalues_dataset_c.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": null,
+    "fdr": null,
+    "annotation": "Annotation"
+  },
+  "missing_fdr.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": "p_value",
+    "fdr": null,
+    "annotation": "Annotation"
+  },
+  "invalid_pvalues.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": null,
+    "fdr": "FDR",
+    "annotation": "Annotation"
+  },
+  "invalid_fdr.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": "p_value",
+    "fdr": null,
+    "annotation": "Annotation"
+  },
+  "ambiguous_pvalues.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": "p_value",
+    "fdr": "FDR",
+    "annotation": "Annotation"
+  },
+  "ambiguous_fdr.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": "p_value",
+    "fdr": "FDR",
+    "annotation": "Annotation"
+  },
+  "adversarial_p_words.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": null,
+    "fdr": null,
+    "annotation": "Annotation"
+  },
+  "adversarial_fdr_words.csv": {
+    "compound_id": "compound_id",
+    "effect_size": "logFC",
+    "p_value": "p_value",
+    "fdr": null,
+    "annotation": "Annotation"
+  },
+  "metaboanalyst_like.csv": {
+    "compound_id": "Metabolite",
+    "effect_size": "log2 fold change",
+    "p_value": "raw p",
+    "fdr": "adjusted p",
+    "annotation": "identification level"
+  },
+  "msdial_like.csv": {
+    "compound_id": "Metabolite name",
+    "effect_size": "Fold change",
+    "p_value": "P-value",
+    "fdr": "FDR",
+    "annotation": null
+  },
+  "xcms_like.csv": {
+    "compound_id": "feature_id",
+    "effect_size": "logFC",
+    "p_value": "p.value",
+    "fdr": "q.value",
+    "annotation": "annotation"
+  },
+  "mixed_case_headers.csv": {
+    "compound_id": "Compound ID",
+    "effect_size": "LOGfc",
+    "p_value": "P VALUE",
+    "fdr": "fDr",
+    "annotation": "Confidence Level"
+  },
+  "punctuation_headers.csv": {
+    "compound_id": "compound.id",
+    "effect_size": "log2-fold-change",
+    "p_value": "p.value",
+    "fdr": "p.adjust",
+    "annotation": "identification/confidence"
+  }
+}

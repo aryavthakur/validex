@@ -1,0 +1,8 @@
+Metabolite name,Fold change,P-value,FDR,MS/MS assigned
+glucose,2.87,0.001,0.010,TRUE
+palmitate,0.55,0.032,0.095,FALSE
+lactate,4.28,0.008,0.040,TRUE
+citrate,0.40,0.210,0.425,FALSE
+alanine,1.65,0.560,0.720,TRUE
+glutamate,0.77,0.830,0.900,FALSE
+pyruvate,3.11,0.002,0.015,TRUE

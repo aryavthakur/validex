@@ -1,110 +1,88 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { splitWords } from '../utils/splitText';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function FinalCTA({ onLaunch }) {
   const sectionRef = useRef(null);
   const cubeRef = useRef(null);
-  const btnRef = useRef(null);
-  const titleRef = useRef(null);
-  const triggersRef = useRef([]);
-  const loopsRef = useRef([]);
+  const copyRef = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
 
-    if (!reduced && cubeRef.current) {
-      gsap.set(cubeRef.current, { opacity: 0, scale: 0.8 });
-    }
+    const ctx = gsap.context(() => {
+      gsap.set([cubeRef.current, copyRef.current, buttonRef.current], { autoAlpha: 0, y: 32 });
+      gsap.set(cubeRef.current, { scale: 0.82 });
 
-    const handleDone = () => {
       const trigger = ScrollTrigger.create({
-        trigger: sectionRef.current,
+        trigger: section,
         start: 'top 70%',
         once: true,
         onEnter: () => {
-          if (reduced) return;
-
-          if (cubeRef.current) {
-            gsap.to(cubeRef.current, {
-              opacity: 1,
-              scale: 1,
-              duration: 1,
-              ease: 'power3.out',
-            });
-
-            const floatLoop = gsap.to(cubeRef.current, {
-              y: -8,
-              duration: 4,
-              ease: 'sine.inOut',
-              yoyo: true,
-              repeat: -1,
-              delay: 1,
-            });
-            loopsRef.current.push(floatLoop);
-          }
-
-          if (titleRef.current) {
-            const words = splitWords(titleRef.current);
-            gsap.from(words, {
-              y: 20,
-              opacity: 0,
-              duration: 0.7,
-              stagger: 0.04,
-              ease: 'power3.out',
-              delay: 0.3,
-            });
-          }
-
-          if (btnRef.current) {
-            const pulseLoop = gsap.to(btnRef.current, {
-              scale: 1.02,
-              duration: 1.5,
-              ease: 'sine.inOut',
-              yoyo: true,
-              repeat: -1,
-              delay: 1.2,
-            });
-            loopsRef.current.push(pulseLoop);
-          }
-        },
+          gsap.to(cubeRef.current, {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 1,
+            ease: 'power3.out'
+          });
+          gsap.to([copyRef.current, buttonRef.current], {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.8,
+            stagger: 0.12,
+            ease: 'power3.out',
+            delay: 0.18
+          });
+          gsap.to(cubeRef.current, {
+            y: -10,
+            duration: 3.8,
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: -1,
+            delay: 1
+          });
+        }
       });
-      triggersRef.current.push(trigger);
-    };
 
-    window.addEventListener('preloader:done', handleDone);
-    return () => {
-      window.removeEventListener('preloader:done', handleDone);
-      triggersRef.current.forEach(t => t.kill());
-      loopsRef.current.forEach(l => l.kill());
-    };
+      return () => trigger.kill();
+    }, section);
+
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section className="section__primary-transition" ref={sectionRef} id="final-cta">
-      <div className="section__background">
-        <div className="wrapper">
-          <div className="title__block">
-            <img
-              ref={cubeRef}
-              src="/assets/images/stats-cube@2x.png"
-              alt="Validation complete"
-              loading="lazy"
-            />
-            <h2 className="type__title-main" ref={titleRef}>
-              Turn statistical uncertainty into an audit trail
-            </h2>
-            <button
-              ref={btnRef}
-              className="global__btn type--primary"
-              onClick={onLaunch}
-            >
-              LAUNCH VALIDEX
-            </button>
-          </div>
-        </div>
+    <section className="final-scene" ref={sectionRef} id="final-cta">
+      <div className="final-scene__atmosphere" />
+
+      <img
+        ref={cubeRef}
+        className="final-scene__cube"
+        src="/assets/images/stats-cube@2x.png"
+        alt="Validated audit matrix"
+        loading="lazy"
+      />
+
+      <div className="final-scene__copy" ref={copyRef}>
+        <p className="type__hints">VALIDATION COMPLETE</p>
+        <h2 className="type__title-main">
+          TURN STATISTICAL<br />
+          UNCERTAINTY INTO<br />
+          AN AUDIT TRAIL
+        </h2>
+        <p className="type__body">A structured validation layer before interpretation, review, or publication.</p>
       </div>
+
+      <button ref={buttonRef} className="global__btn type--primary" onClick={onLaunch}>
+        LAUNCH VALIDEX
+      </button>
     </section>
   );
 }

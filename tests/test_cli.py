@@ -1,10 +1,96 @@
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
 from validex import cli
 from validex.config import load_config
+
+
+# ---------------------------------------------------------------------------
+# audit subcommand
+# ---------------------------------------------------------------------------
+
+class TestCliAudit:
+    """The 'validex audit <csv>' command must print score and audit_confidence."""
+
+    def _write_csv(self, tmp_path: Path, name: str, content: str) -> str:
+        p = tmp_path / name
+        p.write_text(content)
+        return str(p)
+
+    def test_audit_complete_standard_prints_score(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "complete.csv",
+            "compound_id,logFC,p_value,fdr,Annotation\n"
+            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n")
+        exit_code = cli.main(["audit", csv])
+        assert exit_code == 0
+        out = capsys.readouterr().out
+        assert "Validex score:" in out
+
+    def test_audit_complete_standard_prints_high_confidence(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "complete.csv",
+            "compound_id,logFC,p_value,fdr,Annotation\n"
+            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n")
+        cli.main(["audit", csv])
+        out = capsys.readouterr().out
+        assert "Audit confidence: high" in out
+
+    def test_audit_dataset_c_prints_low_confidence(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "dataset_c.csv",
+            "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
+            "M1,1.5,10,15,confirmed\nM2,-0.3,5,4,putative\n")
+        cli.main(["audit", csv])
+        out = capsys.readouterr().out
+        assert "Audit confidence: low" in out
+
+    def test_audit_dataset_c_prints_score_40(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "dataset_c.csv",
+            "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
+            "M1,1.5,10,15,confirmed\nM2,-0.3,5,4,putative\n")
+        cli.main(["audit", csv])
+        out = capsys.readouterr().out
+        assert "Validex score: 40/100" in out
+
+    def test_audit_ambiguous_pvalue_prints_medium_confidence(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "ambig.csv",
+            "compound_id,logFC,p_value,pval,FDR,Annotation\n"
+            "M1,1.5,0.01,0.01,0.05,confirmed\nM2,-0.3,0.20,0.20,0.40,putative\n")
+        cli.main(["audit", csv])
+        out = capsys.readouterr().out
+        assert "Audit confidence: medium" in out
+
+    def test_audit_complete_standard_prints_100(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "complete.csv",
+            "compound_id,logFC,p_value,fdr,Annotation\n"
+            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n")
+        cli.main(["audit", csv])
+        out = capsys.readouterr().out
+        assert "100/100" in out
+
+    def test_audit_writes_report_file_when_output_given(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "complete.csv",
+            "compound_id,logFC,p_value,fdr,Annotation\n"
+            "M1,1.5,0.01,0.05,confirmed\n")
+        report = str(tmp_path / "report.md")
+        exit_code = cli.main(["audit", csv, "--output", report])
+        assert exit_code == 0
+        out = capsys.readouterr().out
+        assert "Report written to:" in out
+        assert (tmp_path / "report.md").exists()
+
+    def test_audit_missing_file_returns_nonzero(self, tmp_path, capsys):
+        exit_code = cli.main(["audit", str(tmp_path / "nonexistent.csv")])
+        assert exit_code != 0
+
+    def test_audit_output_includes_findings_section(self, tmp_path, capsys):
+        csv = self._write_csv(tmp_path, "dataset_c.csv",
+            "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
+            "M1,1.5,10,15,confirmed\n")
+        cli.main(["audit", csv])
+        out = capsys.readouterr().out
+        assert "Findings:" in out
 
 
 def test_main_config_show_creates_private_config(tmp_path, monkeypatch, capsys):

@@ -1,0 +1,6 @@
+compound_id,sample,pathway,phenotype,platform,replicate,logFC,Annotation
+M1,S1,glycolysis,obese,LC-MS,rep1,1.52,confirmed
+M2,S2,lipolysis,lean,GC-MS,rep2,-0.85,putative
+M3,S3,tca_cycle,obese,LC-MS,rep1,2.10,confirmed
+M4,S4,glycolysis,lean,GC-MS,rep2,-1.30,putative
+M5,S5,beta_oxidation,obese,LC-MS,rep1,0.72,unknown

@@ -9,6 +9,9 @@ description = "Privacy-first local metabolomics validity auditor"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
+authors = [
+  { name = "Aryav Thakur" },
+]
 dependencies = [
   "fastapi>=0.111.0",
   "uvicorn[standard]>=0.29.0",
@@ -34,3 +37,4 @@ validex = ["static/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]

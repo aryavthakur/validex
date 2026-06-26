@@ -1,0 +1,6 @@
+compound_id,logFC,p_value,FDR,Annotation
+M1,1.52,2.5,0.05,confirmed
+M2,-0.85,-0.1,0.10,putative
+M3,2.10,abc,0.20,confirmed
+M4,-1.30,4.0,0.30,putative
+M5,0.72,,0.40,unknown

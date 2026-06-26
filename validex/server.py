@@ -167,7 +167,7 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
             report_json = json.loads(Path(json_path).read_text(encoding="utf-8")) if os.path.exists(json_path) else {}
 
         df = pd.read_csv(io.BytesIO(contents))
-        sm = detect_schema(df)
+        sm = detect_schema(df.columns)
         overview = {
             "n_rows": int(df.shape[0]),
             "n_cols": int(df.shape[1]),
@@ -196,13 +196,20 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
             except OllamaError:
                 ai_score_data = {"ai_score": None, "ai_score_reason": None}
 
+        audit_analysis = report_json.get("analysis", {})
+        audit_confidence = audit_analysis.get("audit_confidence", "low")
+        audit_score = audit_analysis.get("confidence", 0)
+
         return JSONResponse({
+            "score": audit_score,
+            "audit_confidence": audit_confidence,
             "overview": overview,
             "schema": {
                 "canonical_to_original": sm.canonical_to_original,
                 "missing": sm.missing,
                 "ambiguities": sm.ambiguities,
             },
+            "findings": audit_analysis.get("flags", []),
             "preview": {"columns": list(df.columns), "rows": preview_rows},
             "report_md": report_md,
             "report_json": report_json,

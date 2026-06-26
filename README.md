@@ -203,6 +203,39 @@ cd frontend
 VITE_API_URL=http://127.0.0.1:8000 npm run dev
 ```
 
+## Benchmark Suite
+
+Validex includes a reproducible benchmark suite that evaluates schema detection accuracy and audit behavior across 14 synthetic fixture tables covering standard tables, missing statistical fields, invalid statistical values, ambiguous aliases, adversarial headers, and common export-style headers. On this included benchmark suite, Validex currently achieves 100% field-level schema detection precision and recall.
+
+This benchmark is a regression and behavior suite, not a real-world validation study. It does not establish performance across published metabolomics supplements or expert-labeled external datasets.
+
+```bash
+python benchmarks/run_benchmark.py
+```
+
+The benchmark reports per-fixture pass/fail status, audit score, confidence label (`high` / `medium` / `low`), and schema detection precision and recall. It also runs as part of the standard test suite:
+
+```bash
+pytest
+```
+
+See `benchmarks/README.md` for fixture descriptions, score semantics, confidence label rules, how to add new fixtures, and known limitations.
+
+## External Validation Scaffold
+
+Validex includes an external validation scaffold for future evaluation on legally accessible, real published metabolomics result tables. This scaffold defines a registry format, manual labeling format, metric calculation, and a validation runner. No external validation results are claimed unless a completed labeled external dataset and results file are provided.
+
+- Protocol: [`docs/external_validation_protocol.md`](docs/external_validation_protocol.md)
+- Scaffold: [`validation/README.md`](validation/README.md)
+
+A pilot validation workspace is available under `validation/pilot/` for manually recording candidate external tables, licensing notes, labels, and dry-run results. Pilot runs are workflow tests and are not external validation claims. See [`validation/pilot/README.md`](validation/pilot/README.md).
+
+## Scope and Claims
+
+Validex audits post-analysis result tables for reporting completeness. It does not process raw instrument data, perform statistical testing, validate biological findings, or replace expert review.
+
+See [`docs/scope_and_prior_art.md`](docs/scope_and_prior_art.md) for a full description of what Validex does and does not do, where it sits in the metabolomics workflow, adjacent tool categories, prior-art citation placeholders, current evidence level, and allowed versus disallowed claims.
+
 ## Release Notes
 
 ### 0.1.0

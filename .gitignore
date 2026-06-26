@@ -5,6 +5,8 @@ build/
 *.pyc
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .venv/
 venv/
 *.egg-info/
@@ -13,3 +15,12 @@ venv/
 .env.local
 .vite/
 .worktrees/
+.coverage
+htmlcov/
+outputs/
+validation/pilot/results/*
+!validation/pilot/results/README.md
+validation/pilot/tables/*.csv
+validation/pilot/tables/*.tsv
+validation/pilot/tables/*.xlsx
+validation/pilot/tables/*.xls

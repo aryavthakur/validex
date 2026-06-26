@@ -3,82 +3,109 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import UploadZone from './UploadZone';
 
+gsap.registerPlugin(ScrollTrigger);
+
 const FLAGS = [
   { label: 'MISSING FDR CORRECTION', status: 'invalid', note: 'HIGH PRIORITY' },
-  { label: 'FOLD CHANGE DETECTED',   status: 'valid',   note: 'PASS' },
-  { label: 'P-VALUE RANGE VALID',    status: 'valid',   note: 'PASS' },
-  { label: 'METADATA COMPLETENESS',  status: 'partial', note: 'PARTIAL' },
+  { label: 'FOLD CHANGE DETECTED', status: 'valid', note: 'PASS' },
+  { label: 'P-VALUE RANGE VALID', status: 'valid', note: 'PASS' },
+  { label: 'METADATA COMPLETENESS', status: 'partial', note: 'PARTIAL' }
 ];
 
 export default function ProductDemo({ onLaunch, onFileAccepted }) {
   const sectionRef = useRef(null);
-  const triggersRef = useRef([]);
-
-  const safeFileAccepted = typeof onFileAccepted === 'function' ? onFileAccepted : () => {};
+  const scoreRef = useRef(null);
+  const safeFileAccepted = typeof onFileAccepted === 'function' ? onFileAccepted : () => {
+    console.warn('ProductDemo missing onFileAccepted');
+  };
 
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
 
-    gsap.set(sectionRef.current, { opacity: 0, y: 30 });
+    const ctx = gsap.context(() => {
+      gsap.set('.demo-shell__upload, .demo-shell__audit, .demo-shell__copy', { autoAlpha: 0, y: 34 });
 
-    const handleDone = () => {
       const trigger = ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top 60%',
+        trigger: section,
+        start: 'top 65%',
         once: true,
         onEnter: () => {
-          gsap.to(sectionRef.current, {
-            opacity: 1,
+          gsap.to('.demo-shell__copy, .demo-shell__upload, .demo-shell__audit', {
+            autoAlpha: 1,
             y: 0,
-            duration: 0.9,
-            ease: 'power3.out',
+            duration: 0.8,
+            stagger: 0.1,
+            ease: 'power3.out'
           });
-        },
-      });
-      triggersRef.current.push(trigger);
-    };
 
-    window.addEventListener('preloader:done', handleDone);
-    return () => {
-      window.removeEventListener('preloader:done', handleDone);
-      triggersRef.current.forEach(t => t.kill());
-    };
+          if (scoreRef.current) {
+            gsap.fromTo(scoreRef.current, { textContent: 0 }, {
+              textContent: 82,
+              duration: 1.1,
+              delay: 0.35,
+              snap: { textContent: 1 },
+              ease: 'power2.out'
+            });
+          }
+        }
+      });
+
+      return () => trigger.kill();
+    }, section);
+
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section className="section__service service--demo" ref={sectionRef} id="product-demo">
-      <div className="wrapper">
-        <div className="service__block">
-          <p className="type__hints">TRY IT NOW</p>
-          <h2 className="type__title-secondary">UPLOAD YOUR RESULTS</h2>
-          <div className="demo__grid">
-            <div className="demo__upload-panel">
-              <UploadZone onFileAccepted={safeFileAccepted} />
-            </div>
-            <div className="demo__audit-panel">
-              <div className="audit__score-bar">
-                <span className="type__hints">VALIDITY SCORE</span>
-                <span className="type__title-secondary audit__score-number">82 / 100</span>
-              </div>
-              <div className="audit__flags">
-                {FLAGS.map(flag => (
-                  <div key={flag.label} className="flag" data-status={flag.status}>
-                    <span className="flag__label type__body">{flag.label}</span>
-                    <span className="flag__note type__hints">{flag.note}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="audit__recommendation type__body">
-                Add q-values before confirmatory interpretation
-              </div>
+    <section className="demo-shell" ref={sectionRef} id="product-demo">
+      <div className="demo-shell__atmosphere" />
+
+      <div className="demo-shell__copy">
+        <p className="type__hints">TRY IT NOW</p>
+        <h2 className="type__title-main">
+          UPLOAD YOUR<br />
+          RESULTS CSV
+        </h2>
+        <p className="type__body">
+          Upload a metabolomics results CSV. Validex checks statistical reporting, correction status, effect size clarity,
+          metadata completeness, and reproducibility risk. It returns a scored audit with flags and recommendations.
+        </p>
+      </div>
+
+      <div className="demo-shell__grid">
+        <div className="demo-shell__upload">
+          <UploadZone onFileAccepted={safeFileAccepted} />
+        </div>
+
+        <div className="demo-shell__audit">
+          <div className="demo-shell__score">
+            <p className="type__hints">VALIDITY SCORE</p>
+            <div className="demo-shell__score-number">
+              <span ref={scoreRef}>82</span>
+              <span>/100</span>
             </div>
           </div>
-          <div className="service__cta">
-            <button className="global__btn type--ghost" onClick={onLaunch}>
-              UPLOAD YOUR DATA
-            </button>
+
+          <div className="demo-shell__flags">
+            {FLAGS.map(flag => (
+              <div className="demo-shell__flag" data-status={flag.status} key={flag.label}>
+                <span className="type__body">{flag.label}</span>
+                <span className="type__hints">{flag.note}</span>
+              </div>
+            ))}
           </div>
+
+          <div className="demo-shell__recommendation type__body">
+            Add q-values before confirmatory interpretation.
+          </div>
+
+          <button className="global__btn type--ghost" onClick={onLaunch}>
+            UPLOAD YOUR DATA
+          </button>
         </div>
       </div>
     </section>

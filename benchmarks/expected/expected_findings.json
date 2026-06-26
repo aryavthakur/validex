@@ -1,0 +1,158 @@
+{
+  "complete_standard.csv": {
+    "required_findings": [],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "missing_pvalues_dataset_c.csv": {
+    "required_findings": [
+      "missing_p_value",
+      "missing_fdr"
+    ],
+    "forbidden_findings": [
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "missing_fdr.csv": {
+    "required_findings": [
+      "missing_fdr"
+    ],
+    "forbidden_findings": [
+      "missing_p_value",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "invalid_pvalues.csv": {
+    "required_findings": [
+      "invalid_p_value",
+      "missing_p_value"
+    ],
+    "forbidden_findings": [
+      "missing_fdr",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "invalid_fdr.csv": {
+    "required_findings": [
+      "invalid_fdr",
+      "missing_fdr"
+    ],
+    "forbidden_findings": [
+      "missing_p_value",
+      "invalid_p_value"
+    ],
+    "known_limitations": []
+  },
+  "ambiguous_pvalues.csv": {
+    "required_findings": [
+      "ambiguous_p_value"
+    ],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": [
+      "p_value ambiguity (p_value + pval both match) applies a -5 score penalty. Score is 95, not 100."
+    ]
+  },
+  "ambiguous_fdr.csv": {
+    "required_findings": [
+      "ambiguous_fdr"
+    ],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": [
+      "fdr ambiguity (FDR + padj both match) applies a -5 score penalty. Score is 95, not 100."
+    ]
+  },
+  "adversarial_p_words.csv": {
+    "required_findings": [
+      "missing_p_value",
+      "missing_fdr"
+    ],
+    "forbidden_findings": [
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "adversarial_fdr_words.csv": {
+    "required_findings": [
+      "missing_fdr"
+    ],
+    "forbidden_findings": [
+      "missing_p_value",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "metaboanalyst_like.csv": {
+    "required_findings": [],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "msdial_like.csv": {
+    "required_findings": [],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": [
+      "The 'MS/MS assigned' column does not map to any supported annotation alias (normalizes to 'ms_ms_assigned', which is not in the annotation alias set). Annotation is therefore not detected for this fixture. This is a known limitation of the current alias set, not a schema detection error."
+    ]
+  },
+  "xcms_like.csv": {
+    "required_findings": [],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "mixed_case_headers.csv": {
+    "required_findings": [],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  },
+  "punctuation_headers.csv": {
+    "required_findings": [],
+    "forbidden_findings": [
+      "missing_p_value",
+      "missing_fdr",
+      "invalid_p_value",
+      "invalid_fdr"
+    ],
+    "known_limitations": []
+  }
+}

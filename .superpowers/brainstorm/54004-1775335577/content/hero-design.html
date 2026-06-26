@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validex Hero Design</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #050505; font-family: 'Inter', system-ui, sans-serif; color: #f0ede8; min-height: 100vh; }
+
+  /* Nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 52px;
+    border-bottom: 1px solid #141414;
+    background: rgba(5,5,5,0.85); backdrop-filter: blur(12px);
+  }
+  .nav-logo { font-size: 14px; font-weight: 700; color: #f0ede8; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+  .nav-logo-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+  .nav-links { display: flex; align-items: center; gap: 24px; }
+  .nav-link { font-size: 12px; color: #555; cursor: pointer; }
+  .nav-cta { font-size: 12px; font-weight: 600; color: #0a0a0a; background: #f0ede8; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+
+  /* Hero */
+  .hero {
+    position: relative; width: 100%; height: 100vh; min-height: 700px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: 1fr 1fr;
+    padding: 80px 48px 48px;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* Corner feature callouts */
+  .callout {
+    display: flex; flex-direction: column; justify-content: flex-start;
+    padding: 16px;
+  }
+  .callout.top-left { grid-column: 1; grid-row: 1; justify-content: flex-start; }
+  .callout.top-right { grid-column: 3; grid-row: 1; justify-content: flex-start; text-align: right; align-items: flex-end; }
+  .callout.bottom-left { grid-column: 1; grid-row: 2; justify-content: flex-end; }
+  .callout.bottom-right { grid-column: 3; grid-row: 2; justify-content: flex-end; text-align: right; align-items: flex-end; }
+
+  .callout-label { font-family: monospace; font-size: 9px; color: #444; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .callout-title { font-size: 20px; font-weight: 700; color: #f0ede8; line-height: 1.2; letter-spacing: -0.03em; margin-bottom: 6px; }
+  .callout-sub { font-size: 12px; color: #555; line-height: 1.6; max-width: 220px; }
+  .callout-sub strong { color: #888; font-weight: 500; }
+
+  /* Center 3D area */
+  .center-3d {
+    grid-column: 2; grid-row: 1 / 3;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px;
+    width: 380px;
+  }
+
+  /* Molecule placeholder */
+  .molecule-wrap {
+    position: relative; width: 280px; height: 280px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .molecule-glow {
+    position: absolute; inset: -40px;
+    background: radial-gradient(circle at center, rgba(200,185,154,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .molecule-canvas {
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  /* CTA below molecule */
+  .hero-cta-group {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .hero-headline {
+    font-family: monospace; font-size: 10px; color: #444; letter-spacing: 0.12em;
+    text-transform: uppercase; text-align: center;
+  }
+  .hero-cta-row { display: flex; gap: 10px; align-items: center; }
+  .btn-primary { background: #f0ede8; color: #0a0a0a; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 7px; cursor: pointer; letter-spacing: -0.01em; }
+  .btn-ghost { color: #555; font-size: 12px; padding: 10px 14px; border-radius: 7px; border: 1px solid #1a1a1a; cursor: pointer; }
+
+  /* Stats row */
+  .stats-row {
+    display: flex; gap: 28px; align-items: center;
+    padding-top: 10px; border-top: 1px solid #141414;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-size: 16px; font-weight: 800; color: #f0ede8; letter-spacing: -0.03em; }
+  .stat-label { font-family: monospace; font-size: 8px; color: #3a3a3a; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+  /* Animated molecule SVG */
+  @keyframes rotate-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes rotate-reverse { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+  @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+  .mol-outer { animation: float 4s ease-in-out infinite; }
+  .mol-ring1 { animation: rotate-slow 12s linear infinite; transform-origin: 50% 50%; transform-box: fill-box; }
+  .mol-ring2 { animation: rotate-reverse 8s linear infinite; transform-origin: 50% 50%; transform-box: fill-box; }
+
+  /* Background grid */
+  .bg-grid {
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 60% 80% at 50% 50%, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 80% at 50% 50%, black 40%, transparent 100%);
+  }
+
+  /* Radial glow bg */
+  .bg-glow {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 600px; height: 600px; z-index: 0;
+    background: radial-gradient(circle at center, rgba(200,185,154,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero > * { position: relative; z-index: 1; }
+  .bg-grid, .bg-glow { position: absolute; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    Validex
+  </div>
+  <div class="nav-links">
+    <span class="nav-link">Features</span>
+    <span class="nav-link">Docs</span>
+    <span class="nav-cta">Run Audit →</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <!-- TOP LEFT -->
+  <div class="callout top-left">
+    <div class="callout-label">Statistical integrity</div>
+    <div class="callout-title">18+ audit<br/>rules</div>
+    <div class="callout-sub">FDR control, normalization checks, batch effects — all validated automatically.</div>
+  </div>
+
+  <!-- CENTER 3D -->
+  <div class="center-3d">
+    <div class="molecule-wrap">
+      <div class="molecule-glow"></div>
+      <div class="molecule-canvas">
+        <div class="mol-outer">
+          <svg width="260" height="260" viewBox="0 0 260 260" fill="none">
+            <!-- Outer orbit ring -->
+            <g class="mol-ring1">
+              <ellipse cx="130" cy="130" rx="110" ry="40" stroke="rgba(200,185,154,0.08)" stroke-width="1"/>
+            </g>
+            <!-- Inner orbit -->
+            <g class="mol-ring2">
+              <ellipse cx="130" cy="130" rx="75" ry="28" stroke="rgba(200,185,154,0.06)" stroke-width="1" transform="rotate(60 130 130)"/>
+            </g>
+
+            <!-- Bonds -->
+            <line x1="130" y1="60" x2="185" y2="100" stroke="#c8b99a" stroke-width="1.5" opacity="0.35"/>
+            <line x1="185" y1="100" x2="175" y2="165" stroke="#c8b99a" stroke-width="1.5" opacity="0.35"/>
+            <line x1="175" y1="165" x2="110" y2="185" stroke="#c8b99a" stroke-width="1.5" opacity="0.35"/>
+            <line x1="110" y1="185" x2="68" y2="148" stroke="#c8b99a" stroke-width="1.5" opacity="0.35"/>
+            <line x1="68" y1="148" x2="80" y2="88" stroke="#c8b99a" stroke-width="1.5" opacity="0.35"/>
+            <line x1="80" y1="88" x2="130" y2="60" stroke="#c8b99a" stroke-width="1.5" opacity="0.35"/>
+            <!-- cross bonds -->
+            <line x1="130" y1="60" x2="175" y2="165" stroke="#c8b99a" stroke-width="1" opacity="0.15"/>
+            <line x1="185" y1="100" x2="68" y2="148" stroke="#c8b99a" stroke-width="1" opacity="0.15"/>
+            <!-- H branches -->
+            <line x1="130" y1="60" x2="130" y2="30" stroke="#888" stroke-width="1" opacity="0.25"/>
+            <line x1="185" y1="100" x2="215" y2="85" stroke="#888" stroke-width="1" opacity="0.25"/>
+            <line x1="175" y1="165" x2="200" y2="185" stroke="#888" stroke-width="1" opacity="0.25"/>
+            <line x1="68" y1="148" x2="42" y2="162" stroke="#888" stroke-width="1" opacity="0.25"/>
+            <line x1="80" y1="88" x2="56" y2="72" stroke="#888" stroke-width="1" opacity="0.25"/>
+
+            <!-- Carbon atoms (main ring) -->
+            <circle cx="130" cy="60" r="10" fill="#1a1a1a" stroke="#c8b99a" stroke-width="1.5"/>
+            <circle cx="130" cy="60" r="5" fill="#c8b99a" opacity="0.8"/>
+
+            <circle cx="185" cy="100" r="10" fill="#1a1a1a" stroke="#c8b99a" stroke-width="1.5"/>
+            <circle cx="185" cy="100" r="5" fill="#c8b99a" opacity="0.8"/>
+
+            <circle cx="175" cy="165" r="10" fill="#1a1a1a" stroke="#c8b99a" stroke-width="1.5"/>
+            <circle cx="175" cy="165" r="5" fill="#c8b99a" opacity="0.8"/>
+
+            <circle cx="110" cy="185" r="10" fill="#1a1a1a" stroke="#4ade80" stroke-width="1.5"/>
+            <circle cx="110" cy="185" r="5" fill="#4ade80" opacity="0.7"/>
+
+            <circle cx="68" cy="148" r="10" fill="#1a1a1a" stroke="#c8b99a" stroke-width="1.5"/>
+            <circle cx="68" cy="148" r="5" fill="#c8b99a" opacity="0.8"/>
+
+            <circle cx="80" cy="88" r="10" fill="#1a1a1a" stroke="#c8b99a" stroke-width="1.5"/>
+            <circle cx="80" cy="88" r="5" fill="#c8b99a" opacity="0.8"/>
+
+            <!-- Oxygen atoms (branch) — different color -->
+            <circle cx="130" cy="30" r="7" fill="#1a1a1a" stroke="rgba(251,146,60,0.7)" stroke-width="1.5"/>
+            <circle cx="130" cy="30" r="3" fill="rgba(251,146,60,0.6)"/>
+
+            <circle cx="215" cy="85" r="7" fill="#1a1a1a" stroke="rgba(251,146,60,0.7)" stroke-width="1.5"/>
+            <circle cx="215" cy="85" r="3" fill="rgba(251,146,60,0.6)"/>
+
+            <circle cx="200" cy="185" r="7" fill="#1a1a1a" stroke="rgba(251,146,60,0.7)" stroke-width="1.5"/>
+            <circle cx="200" cy="185" r="3" fill="rgba(251,146,60,0.6)"/>
+
+            <!-- H atoms (tiny) -->
+            <circle cx="42" cy="162" r="5" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+            <circle cx="56" cy="72" r="5" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+
+            <!-- Center glow -->
+            <circle cx="130" cy="122" r="22" fill="rgba(200,185,154,0.04)" stroke="rgba(200,185,154,0.08)" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-cta-group">
+      <div class="hero-headline">Metabolomics · AI-Powered · Free</div>
+      <div class="hero-cta-row">
+        <div class="btn-primary">Run your first audit →</div>
+        <div class="btn-ghost">See example</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-val">&lt;3s</div><div class="stat-label">Audit time</div></div>
+        <div class="stat"><div class="stat-val">18+</div><div class="stat-label">Rules</div></div>
+        <div class="stat"><div class="stat-val">Free</div><div class="stat-label">Always</div></div>
+        <div class="stat"><div class="stat-val">AI</div><div class="stat-label">Groq</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP RIGHT -->
+  <div class="callout top-right">
+    <div class="callout-label">AI confidence</div>
+    <div class="callout-title">Groq-powered<br/>scoring</div>
+    <div class="callout-sub">Automated score + AI adjustment based on your study design and notes.</div>
+  </div>
+
+  <!-- BOTTOM LEFT -->
+  <div class="callout bottom-left">
+    <div class="callout-label">Schema detection</div>
+    <div class="callout-title">Any column<br/>naming</div>
+    <div class="callout-sub">Normalizes <strong>pval</strong>, <strong>P_Value</strong>, <strong>adj.p.BH</strong> — maps automatically to canonical fields.</div>
+  </div>
+
+  <!-- BOTTOM RIGHT -->
+  <div class="callout bottom-right">
+    <div class="callout-label">Data cleaning</div>
+    <div class="callout-title">Review before<br/>download</div>
+    <div class="callout-sub">Proposes outlier, duplicate, and missing-value removals. You approve before export.</div>
+  </div>
+
+</section>
+
+</body>
+</html>
