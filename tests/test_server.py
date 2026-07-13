@@ -55,12 +55,21 @@ def test_ai_analyze_uses_local_ollama_with_structured_summary(monkeypatch):
 
     response = client.post(
         "/api/ai/analyze",
-        files={"file": ("dataset.csv", b"metabolite,p_value,log2fc\nA,0.01,1.5\nB,0.20,-0.2\n")},
+        files={
+            "file": (
+                "dataset.csv",
+                b"metabolite,p_value,log2fc\nA,0.01,1.5\nB,0.20,-0.2\n",
+            )
+        },
         data={"question": "What should I check?", "context": "{}"},
     )
 
     assert response.status_code == 200
-    assert response.json() == {"analysis": "local analysis", "status": "ok", "provider": "ollama"}
+    assert response.json() == {
+        "analysis": "local analysis",
+        "status": "ok",
+        "provider": "ollama",
+    }
     prompt, model, timeout = prompts[0]
     assert "DATASET SUMMARY" in prompt
     assert '"columns": ["metabolite", "p_value", "log2fc"]' in prompt
@@ -127,11 +136,15 @@ def test_ai_status_does_not_probe_ollama_when_cli_missing(monkeypatch):
 
         def health(self):
             calls.append(("health",))
-            raise AssertionError("health should not be called when Ollama is not installed")
+            raise AssertionError(
+                "health should not be called when Ollama is not installed"
+            )
 
         def list_models(self):
             calls.append(("list_models",))
-            raise AssertionError("list_models should not be called when Ollama is not installed")
+            raise AssertionError(
+                "list_models should not be called when Ollama is not installed"
+            )
 
     monkeypatch.setattr("validex.server.OllamaClient", FakeOllama)
     app = create_app(config=DEFAULT_CONFIG)
@@ -157,9 +170,92 @@ def test_ai_status_does_not_probe_ollama_when_cli_missing(monkeypatch):
     ]
 
 
+class TestPhase1ApiIngestionErrors:
+    def _post_file(self, payload: bytes, filename: str):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        return client.post(
+            "/audit",
+            files={"file": (filename, payload, "text/csv")},
+            data={"context": "{}"},
+        )
+
+    def test_empty_csv_returns_controlled_error(self):
+        response = self._post_file(b"", "empty.csv")
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "EMPTY_FILE"
+        assert "traceback" not in response.text.lower()
+
+    def test_duplicate_headers_return_controlled_error(self):
+        response = self._post_file(
+            b"compound_id,p_value,p_value\nA,0.01,0.02\n", "duplicate.csv"
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "DUPLICATE_HEADERS"
+        assert response.json()["filename"] == "duplicate.csv"
+
+    def test_blank_headers_return_controlled_error(self):
+        response = self._post_file(b"compound_id, ,fdr\nA,0.01,0.02\n", "blank.csv")
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "BLANK_HEADERS"
+
+    def test_malformed_csv_returns_controlled_error(self):
+        response = self._post_file(
+            b"compound_id,p_value,fdr\nA,0.01,0.02\nB,0.03\n", "malformed.csv"
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "MALFORMED_CSV"
+
+    def test_invalid_encoding_returns_controlled_error(self):
+        response = self._post_file(b"compound_id,p_value\nA,\xff\n", "encoding.csv")
+
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "INVALID_ENCODING"
+
+    def test_unsupported_format_returns_controlled_error(self):
+        response = self._post_file(b"compound_id,p_value\nA,0.01\n", "study.tsv")
+
+        assert response.status_code == 415
+        assert response.json()["error_code"] == "UNSUPPORTED_FORMAT"
+
+    def test_api_response_contains_strict_json_for_nonfinite_input(self):
+        response = self._post_file(
+            b"compound_id,logFC,p_value,fdr,Annotation\nA,1.0,inf,0.02,confirmed\nB,2.0,0.03,-inf,putative\n",
+            "nonfinite.csv",
+        )
+
+        assert response.status_code == 200
+        response.json()
+        assert "Infinity" not in response.text
+        assert "NaN" not in response.text
+
+    def test_clean_data_uses_same_ingestion_errors(self):
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+
+        response = client.post(
+            "/clean-data",
+            files={
+                "file": (
+                    "duplicate.csv",
+                    b"compound_id,p_value,p_value\nA,0.01,0.02\n",
+                    "text/csv",
+                )
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["error_code"] == "DUPLICATE_HEADERS"
+
+
 # ---------------------------------------------------------------------------
 # /audit endpoint — top-level response shape
 # ---------------------------------------------------------------------------
+
 
 class TestAuditEndpointResponseShape:
     """The /audit endpoint must expose audit_confidence, score, and findings top-level."""
@@ -178,7 +274,9 @@ class TestAuditEndpointResponseShape:
         response = self._post_csv(client, csv, "complete.csv")
         assert response.status_code == 200
         data = response.json()
-        assert "audit_confidence" in data, f"audit_confidence missing from top-level response: {list(data.keys())}"
+        assert "audit_confidence" in data, (
+            f"audit_confidence missing from top-level response: {list(data.keys())}"
+        )
 
     def test_audit_response_includes_top_level_score(self):
         app = create_app(config=DEFAULT_CONFIG)
@@ -187,7 +285,9 @@ class TestAuditEndpointResponseShape:
         response = self._post_csv(client, csv, "complete.csv")
         assert response.status_code == 200
         data = response.json()
-        assert "score" in data, f"score missing from top-level response: {list(data.keys())}"
+        assert "score" in data, (
+            f"score missing from top-level response: {list(data.keys())}"
+        )
 
     def test_audit_response_includes_top_level_findings(self):
         app = create_app(config=DEFAULT_CONFIG)
@@ -196,7 +296,9 @@ class TestAuditEndpointResponseShape:
         response = self._post_csv(client, csv, "complete.csv")
         assert response.status_code == 200
         data = response.json()
-        assert "findings" in data, f"findings missing from top-level response: {list(data.keys())}"
+        assert "findings" in data, (
+            f"findings missing from top-level response: {list(data.keys())}"
+        )
         assert isinstance(data["findings"], list)
 
     def test_complete_standard_returns_high_confidence(self):
@@ -252,14 +354,13 @@ class TestAuditEndpointResponseShape:
         """Top-level audit_confidence must equal report_json.analysis.audit_confidence."""
         app = create_app(config=DEFAULT_CONFIG)
         client = TestClient(app)
-        csv = (
-            "compound_id,logFC,p_value,fdr,Annotation\n"
-            "M1,1.5,0.01,0.05,confirmed\n"
-        )
+        csv = "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n"
         response = self._post_csv(client, csv, "complete.csv")
         assert response.status_code == 200
         data = response.json()
-        report_json_confidence = data.get("report_json", {}).get("analysis", {}).get("audit_confidence")
+        report_json_confidence = (
+            data.get("report_json", {}).get("analysis", {}).get("audit_confidence")
+        )
         assert data["audit_confidence"] == report_json_confidence, (
             f"Top-level audit_confidence {data['audit_confidence']!r} != "
             f"report_json value {report_json_confidence!r}"

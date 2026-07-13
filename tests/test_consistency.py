@@ -4,9 +4,9 @@ These tests verify structural invariants — canonical code paths, claims
 discipline, and packaging hygiene — that are not exercised by functional unit
 tests.  They do not test scientific behavior; they protect the architecture.
 """
+
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 
 import pytest
@@ -20,6 +20,7 @@ DOCS_DIR = REPO_ROOT / "docs"
 # ---------------------------------------------------------------------------
 # Canonical audit path
 # ---------------------------------------------------------------------------
+
 
 def test_cli_uses_canonical_audit_dataframe():
     """validex.cli must import audit_dataframe from validex.audit."""
@@ -50,6 +51,7 @@ def test_benchmark_uses_canonical_audit_dataframe():
 # No stale substring detection patterns in source
 # ---------------------------------------------------------------------------
 
+
 def _source_py_files(root: Path, exclude_dirs: tuple[str, ...] = ()) -> list[Path]:
     files = []
     for p in root.rglob("*.py"):
@@ -65,7 +67,9 @@ def test_no_find_col_in_source(forbidden):
     """No production source file should use the old find_col() helper."""
     exclude = ("tests", "__pycache__")
     offenders = []
-    for path in _source_py_files(VALIDEX_SRC, exclude) + _source_py_files(BACKEND_SRC, exclude):
+    for path in _source_py_files(VALIDEX_SRC, exclude) + _source_py_files(
+        BACKEND_SRC, exclude
+    ):
         if forbidden in path.read_text(encoding="utf-8"):
             offenders.append(str(path))
     assert offenders == [], f"Found '{forbidden}' in: {offenders}"
@@ -76,7 +80,9 @@ def test_no_substring_detection_in_source():
     forbidden = "in c.lower()"
     exclude = ("tests", "__pycache__")
     offenders = []
-    for path in _source_py_files(VALIDEX_SRC, exclude) + _source_py_files(BACKEND_SRC, exclude):
+    for path in _source_py_files(VALIDEX_SRC, exclude) + _source_py_files(
+        BACKEND_SRC, exclude
+    ):
         if forbidden in path.read_text(encoding="utf-8"):
             offenders.append(str(path))
     assert offenders == [], f"Found '{forbidden}' in: {offenders}"
@@ -85,6 +91,7 @@ def test_no_substring_detection_in_source():
 # ---------------------------------------------------------------------------
 # backend.schema_mapper is a re-export shim
 # ---------------------------------------------------------------------------
+
 
 def test_backend_schema_mapper_reexports_from_validex():
     """backend.schema_mapper must re-export the canonical validex.schema_mapper symbols."""
@@ -99,6 +106,7 @@ def test_backend_schema_mapper_reexports_from_validex():
 # ---------------------------------------------------------------------------
 # Documentation invariants
 # ---------------------------------------------------------------------------
+
 
 def test_readme_includes_benchmark_limitation():
     """README must include the scoping language 'On this included benchmark suite'."""

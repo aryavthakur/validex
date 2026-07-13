@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 KNOWN_ALIASES: Dict[str, List[str]] = {
     "compound_id": [
@@ -147,8 +147,14 @@ def detect_schema(
             alias_norm = normalize_header(alias)
             matched_originals.extend(normed_to_originals.get(alias_norm, []))
 
-        seen: set = set()
-        matched_originals = [x for x in matched_originals if not (x in seen or seen.add(x))]  # type: ignore[func-returns-value]
+        seen: set[str] = set()
+        deduped_originals: list[str] = []
+        for original in matched_originals:
+            if original in seen:
+                continue
+            seen.add(original)
+            deduped_originals.append(original)
+        matched_originals = deduped_originals
 
         if not matched_originals:
             missing.append(canonical)

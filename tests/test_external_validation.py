@@ -8,26 +8,23 @@ These tests verify:
 - The runner errors cleanly when table files are missing.
 - The runner correctly validates a temporary mini external dataset.
 """
+
 from __future__ import annotations
 
 import json
 import csv
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from validation.run_external_validation import (
-    CANONICAL_FIELDS,
     LABELS_REQUIRED_COLUMNS,
     REGISTRY_REQUIRED_COLUMNS,
     FieldResult,
-    ParsedLabel,
     TableResult,
     _parse_field_label,
     _parse_findings,
     aggregate_metrics,
-    compute_table_result,
     parse_label_row,
     run_external_validation,
 )
@@ -38,6 +35,7 @@ VALIDATION_DIR = Path(__file__).resolve().parent.parent / "validation"
 # ---------------------------------------------------------------------------
 # Example file structure tests
 # ---------------------------------------------------------------------------
+
 
 def test_registry_example_has_required_columns():
     """registry.example.csv must have all required columns."""
@@ -70,8 +68,14 @@ def test_external_results_example_has_required_keys():
     path = VALIDATION_DIR / "external_results.example.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     required_keys = {
-        "n_tables", "field_level", "finding_level", "exact_schema_match_rate",
-        "score_distribution", "confidence_distribution", "tables", "failure_cases",
+        "n_tables",
+        "field_level",
+        "finding_level",
+        "exact_schema_match_rate",
+        "score_distribution",
+        "confidence_distribution",
+        "tables",
+        "failure_cases",
     }
     actual_keys = set(data.keys())
     assert required_keys <= actual_keys, (
@@ -109,6 +113,7 @@ def test_labels_example_has_three_rows():
 # ---------------------------------------------------------------------------
 # Label parser tests
 # ---------------------------------------------------------------------------
+
 
 def test_parse_field_label_empty_is_none():
     """Empty string label means field is absent."""
@@ -217,6 +222,7 @@ def test_parse_label_row_ambiguous():
 # FieldResult metric tests
 # ---------------------------------------------------------------------------
 
+
 def test_field_result_tp_exact_match():
     r = FieldResult(canonical="p_value", expected="p_value", actual="p_value")
     assert r.is_tp
@@ -258,7 +264,9 @@ def test_field_result_tp_ambiguous_candidate_match():
 
 def test_field_result_fn_ambiguous_wrong_column():
     """FN when expected is AMBIGUOUS and actual is not in candidates."""
-    r = FieldResult(canonical="p_value", expected=["p_value", "pval"], actual="something_else")
+    r = FieldResult(
+        canonical="p_value", expected=["p_value", "pval"], actual="something_else"
+    )
     assert not r.is_tp
     assert r.is_fn
 
@@ -266,6 +274,7 @@ def test_field_result_fn_ambiguous_wrong_column():
 # ---------------------------------------------------------------------------
 # Aggregate metric tests
 # ---------------------------------------------------------------------------
+
 
 def _make_table_result(
     dataset_id: str,
@@ -275,12 +284,18 @@ def _make_table_result(
 ) -> TableResult:
     """Helper: build a TableResult from components."""
     from validation.run_external_validation import _finding_matches
-    missing_expected = [f for f in expected_findings if not _finding_matches(f, actual_finding_codes)]
+
+    missing_expected = [
+        f for f in expected_findings if not _finding_matches(f, actual_finding_codes)
+    ]
     covered: set[str] = set()
     for ec in expected_findings:
         if ec == "ambiguous_schema_field":
             from validation.run_external_validation import _AMBIGUOUS_FINDING_CODES
-            covered.update(ac for ac in actual_finding_codes if ac in _AMBIGUOUS_FINDING_CODES)
+
+            covered.update(
+                ac for ac in actual_finding_codes if ac in _AMBIGUOUS_FINDING_CODES
+            )
         else:
             covered.add(ec)
     unexpected = [ac for ac in actual_finding_codes if ac not in covered]
@@ -315,7 +330,7 @@ def test_aggregate_metrics_fp_lowers_precision():
     """FP lowers precision below 1.0."""
     fr = [
         FieldResult("p_value", "p_value", "p_value"),  # TP
-        FieldResult("fdr", None, "some_col"),           # FP
+        FieldResult("fdr", None, "some_col"),  # FP
     ]
     r = _make_table_result("T1", fr, [], [])
     metrics = aggregate_metrics([r])
@@ -328,7 +343,7 @@ def test_aggregate_metrics_fn_lowers_recall():
     """FN lowers recall below 1.0."""
     fr = [
         FieldResult("p_value", "p_value", "p_value"),  # TP
-        FieldResult("fdr", "FDR", None),                # FN
+        FieldResult("fdr", "FDR", None),  # FN
     ]
     r = _make_table_result("T1", fr, [], [])
     metrics = aggregate_metrics([r])
@@ -373,6 +388,7 @@ def test_finding_metrics_ambiguous_schema_field_generic_code():
 # ---------------------------------------------------------------------------
 # Runner error handling
 # ---------------------------------------------------------------------------
+
 
 def test_runner_errors_on_missing_registry(tmp_path):
     """Runner raises FileNotFoundError when registry does not exist."""
@@ -432,6 +448,7 @@ def test_runner_errors_on_missing_table_csv(tmp_path):
 # End-to-end runner test with temporary mini external dataset
 # ---------------------------------------------------------------------------
 
+
 def _write_csv(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
@@ -456,9 +473,7 @@ def test_runner_end_to_end_mini_dataset(tmp_path):
     # Table 2: missing p_value and FDR
     _write_csv(
         tables_dir / "missing_stats.csv",
-        "compound_id,logFC,Annotation\n"
-        "M1,1.5,confirmed\n"
-        "M2,-0.3,putative\n",
+        "compound_id,logFC,Annotation\nM1,1.5,confirmed\nM2,-0.3,putative\n",
     )
 
     registry_path = tmp_path / "registry.csv"

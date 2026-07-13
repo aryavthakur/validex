@@ -14,6 +14,7 @@ import uvicorn
 from .ai.ollama_client import OllamaClient, OllamaError
 from .audit import audit_dataframe
 from .config import config_path, load_config, save_config
+from .ingestion import IngestionError, ingest_csv_path
 from .server import create_app
 
 
@@ -31,17 +32,23 @@ def _confirm(message: str) -> bool:
 def _install_ollama_guided() -> bool:
     if sys.platform == "darwin":
         if subprocess.run(["which", "brew"], capture_output=True).returncode == 0:
-            if _confirm("Ollama is required for private local AI. Install it with Homebrew now?"):
+            if _confirm(
+                "Ollama is required for private local AI. Install it with Homebrew now?"
+            ):
                 subprocess.run(["brew", "install", "ollama"], check=True)
                 return True
-        print("Install Ollama from https://ollama.com/download or with: brew install ollama")
+        print(
+            "Install Ollama from https://ollama.com/download or with: brew install ollama"
+        )
         return False
     print("Install Ollama from https://ollama.com/download, then run validex again.")
     return False
 
 
 def _start_ollama_service() -> None:
-    subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(
+        ["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
 
 
 def _wait_for_ollama(client: OllamaClient, timeout_seconds: float = 10.0) -> bool:
@@ -71,7 +78,9 @@ def ensure_local_ai(config: dict[str, Any]) -> None:
 
     model = config["model"]
     if not client.has_model(model):
-        if not _confirm(f"Validex needs local model {model}. This may be a large download. Pull it now?"):
+        if not _confirm(
+            f"Validex needs local model {model}. This may be a large download. Pull it now?"
+        ):
             raise SystemExit(1)
         client.pull_model(model)
 
@@ -85,7 +94,11 @@ def ensure_local_ai(config: dict[str, Any]) -> None:
 def command_status(config: dict[str, Any]) -> int:
     client = OllamaClient(config["ollama_url"])
     installed = client.is_installed()
-    health = client.health() if installed else {"running": False, "error": "Ollama is not installed."}
+    health = (
+        client.health()
+        if installed
+        else {"running": False, "error": "Ollama is not installed."}
+    )
     models = []
     if health["running"]:
         try:
@@ -95,7 +108,7 @@ def command_status(config: dict[str, Any]) -> int:
     print("Validex status")
     print(f"Ollama installed: {installed}")
     print(f"Ollama running: {health['running']}")
-    print(f"AI provider: Ollama")
+    print("AI provider: Ollama")
     print(f"Model: {config['model']}")
     print(f"Model installed: {config['model'] in models}")
     print("Privacy mode: Local only, no cloud AI")
@@ -126,7 +139,15 @@ def command_model(args: argparse.Namespace, config: dict[str, Any]) -> int:
 def command_config(args: argparse.Namespace, config: dict[str, Any]) -> int:
     if args.config_command == "show":
         print(f"Config: {config_path()}")
-        for key in ["ai_provider", "ollama_url", "model", "cloud_ai_enabled", "open_browser", "host", "port"]:
+        for key in [
+            "ai_provider",
+            "ollama_url",
+            "model",
+            "cloud_ai_enabled",
+            "open_browser",
+            "host",
+            "port",
+        ]:
             print(f"{key}: {config.get(key)}")
         return 0
     return 2
@@ -134,17 +155,20 @@ def command_config(args: argparse.Namespace, config: dict[str, Any]) -> int:
 
 def command_audit(args: argparse.Namespace) -> int:
     """Run a schema audit on a CSV file and print results to the terminal."""
-    import pandas as pd
-
     csv_path: str = args.input
     report_path: str | None = getattr(args, "output", None)
 
     if not os.path.exists(csv_path):
-        print(f"Error: file not found: {csv_path}")
+        print(f"Error [FILE_NOT_FOUND]: file not found: {csv_path}", file=sys.stderr)
         return 1
 
-    df = pd.read_csv(csv_path)
-    result = audit_dataframe(df)
+    try:
+        ingested = ingest_csv_path(csv_path)
+    except IngestionError as exc:
+        print(f"Error [{exc.code.value}]: {exc.message}", file=sys.stderr)
+        return 1
+
+    result = audit_dataframe(ingested.dataframe, metadata=ingested.metadata)
 
     score = result["confidence"]
     confidence = result["audit_confidence"]
@@ -180,12 +204,17 @@ def command_audit(args: argparse.Namespace) -> int:
     # Optionally write report
     if report_path:
         from .audit import run_audit
+
         report_dir = os.path.dirname(report_path)
         if report_dir:
             os.makedirs(report_dir, exist_ok=True)
         # Derive json path alongside report
         json_path = os.path.splitext(report_path)[0] + ".json"
-        run_audit(csv_path=csv_path, report_path=report_path, json_path=json_path)
+        try:
+            run_audit(csv_path=csv_path, report_path=report_path, json_path=json_path)
+        except IngestionError as exc:
+            print(f"Error [{exc.code.value}]: {exc.message}", file=sys.stderr)
+            return 1
         print(f"Report written to: {report_path}")
 
     return 0
@@ -209,7 +238,9 @@ def command_run(config: dict[str, Any]) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="validex", description="Run Validex locally with private Ollama AI.")
+    parser = argparse.ArgumentParser(
+        prog="validex", description="Run Validex locally with private Ollama AI."
+    )
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("status")
     model = subparsers.add_parser("model")
@@ -224,7 +255,12 @@ def build_parser() -> argparse.ArgumentParser:
     config_sub.add_parser("show")
     audit = subparsers.add_parser("audit", help="Audit a metabolomics result CSV.")
     audit.add_argument("input", help="Path to the CSV file to audit.")
-    audit.add_argument("--output", "-o", default=None, help="Optional path to write the Markdown report.")
+    audit.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Optional path to write the Markdown report.",
+    )
     return parser
 
 

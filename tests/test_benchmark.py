@@ -9,10 +9,10 @@ Verifies that:
 Do not skip or xfail tests here.  Known limitations are encoded explicitly
 in expected_findings.json, not by weakening assertions.
 """
+
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -32,6 +32,7 @@ from benchmarks.run_benchmark import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_expected_schema() -> dict:
     return json.loads((EXPECTED_DIR / "expected_schema.json").read_text())
 
@@ -47,6 +48,7 @@ def _load_expected_scores() -> dict:
 # ---------------------------------------------------------------------------
 # Fixture file existence and validity
 # ---------------------------------------------------------------------------
+
 
 class TestFixtureFiles:
     def test_all_fixture_csvs_exist(self):
@@ -73,6 +75,7 @@ class TestFixtureFiles:
 # Expected JSON validity
 # ---------------------------------------------------------------------------
 
+
 class TestExpectedJsonFiles:
     def test_expected_schema_json_is_valid(self):
         schema = _load_expected_schema()
@@ -96,9 +99,7 @@ class TestExpectedJsonFiles:
         for fixture_name, entry in scores.items():
             band = entry.get("score_band", [])
             assert len(band) == 2, f"{fixture_name}: score_band must have 2 elements"
-            assert band[0] <= band[1], (
-                f"{fixture_name}: score_band min must be <= max"
-            )
+            assert band[0] <= band[1], f"{fixture_name}: score_band min must be <= max"
 
     def test_every_schema_fixture_has_findings_entry(self):
         schema = _load_expected_schema()
@@ -129,6 +130,7 @@ class TestExpectedJsonFiles:
 # Benchmark runner — programmatic all-pass
 # ---------------------------------------------------------------------------
 
+
 class TestBenchmarkRunner:
     """Run the full benchmark suite programmatically and assert all pass."""
 
@@ -146,15 +148,13 @@ class TestBenchmarkRunner:
 
     def test_all_fixtures_pass(self, results):
         failed = [r.fixture for r in results if not r.passed]
-        assert not failed, (
-            f"The following fixtures failed:\n" +
-            "\n".join(
-                f"  {r.fixture}: schema={r.schema_failures}, "
-                f"missing={r.missing_required}, forbidden={r.unexpected_forbidden}, "
-                f"score={r.score} band={r.expected_score_band}, "
-                f"confidence={r.audit_confidence!r} expected={r.expected_confidence_label!r}"
-                for r in results if not r.passed
-            )
+        assert not failed, "The following fixtures failed:\n" + "\n".join(
+            f"  {r.fixture}: schema={r.schema_failures}, "
+            f"missing={r.missing_required}, forbidden={r.unexpected_forbidden}, "
+            f"score={r.score} band={r.expected_score_band}, "
+            f"confidence={r.audit_confidence!r} expected={r.expected_confidence_label!r}"
+            for r in results
+            if not r.passed
         )
 
     def test_all_results_have_audit_confidence(self, results):
@@ -164,11 +164,11 @@ class TestBenchmarkRunner:
             )
 
     def test_confidence_labels_match_expected(self, results):
-        scores = _load_expected_scores()
         mismatches = [
             f"{r.fixture}: got {r.audit_confidence!r}, expected {r.expected_confidence_label!r}"
             for r in results
-            if r.expected_confidence_label and r.audit_confidence != r.expected_confidence_label
+            if r.expected_confidence_label
+            and r.audit_confidence != r.expected_confidence_label
         ]
         assert not mismatches, "Confidence label mismatches:\n" + "\n".join(
             f"  {m}" for m in mismatches
@@ -201,7 +201,9 @@ class TestBenchmarkRunner:
             for p in r.field_predictions
             if p.is_fp
         ]
-        assert not fps, f"Schema false positives found:\n" + "\n".join(f"  {x}" for x in fps)
+        assert not fps, "Schema false positives found:\n" + "\n".join(
+            f"  {x}" for x in fps
+        )
 
     def test_no_schema_false_negatives(self, results):
         fns = [
@@ -210,12 +212,15 @@ class TestBenchmarkRunner:
             for p in r.field_predictions
             if p.is_fn
         ]
-        assert not fns, f"Schema false negatives found:\n" + "\n".join(f"  {x}" for x in fns)
+        assert not fns, "Schema false negatives found:\n" + "\n".join(
+            f"  {x}" for x in fns
+        )
 
 
 # ---------------------------------------------------------------------------
 # Specific fixture assertions
 # ---------------------------------------------------------------------------
+
 
 class TestDatasetCFixture:
     """The flagship Dataset C case must produce the correct audit outcome."""
@@ -281,14 +286,17 @@ class TestAdversarialFixtures:
 class TestFindingCodeExtraction:
     """Verify that flag title → finding code mapping is correct."""
 
-    @pytest.mark.parametrize("title,expected_code", [
-        ("Missing p-values", "missing_p_value"),
-        ("Missing FDR / adjusted p-values", "missing_fdr"),
-        ("Invalid p-value column", "invalid_p_value"),
-        ("Invalid FDR column", "invalid_fdr"),
-        ("Ambiguous p_value column", "ambiguous_p_value"),
-        ("Ambiguous fdr column", "ambiguous_fdr"),
-        ("FDR/p-value consistency warning", "fdr_consistency_warning"),
-    ])
+    @pytest.mark.parametrize(
+        "title,expected_code",
+        [
+            ("Missing p-values", "missing_p_value"),
+            ("Missing FDR / adjusted p-values", "missing_fdr"),
+            ("Invalid p-value column", "invalid_p_value"),
+            ("Invalid FDR column", "invalid_fdr"),
+            ("Ambiguous p_value column", "ambiguous_p_value"),
+            ("Ambiguous fdr column", "ambiguous_fdr"),
+            ("FDR/p-value consistency warning", "fdr_consistency_warning"),
+        ],
+    )
     def test_flag_to_code(self, title, expected_code):
         assert _flag_to_code(title) == expected_code

@@ -3,14 +3,17 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from validex import cli
-from validex.config import load_config
+from validex.config import DEFAULT_CONFIG, load_config
+from validex.server import create_app
 
 
 # ---------------------------------------------------------------------------
 # audit subcommand
 # ---------------------------------------------------------------------------
+
 
 class TestCliAudit:
     """The 'validex audit <csv>' command must print score and audit_confidence."""
@@ -21,58 +24,78 @@ class TestCliAudit:
         return str(p)
 
     def test_audit_complete_standard_prints_score(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "complete.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "complete.csv",
             "compound_id,logFC,p_value,fdr,Annotation\n"
-            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n")
+            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n",
+        )
         exit_code = cli.main(["audit", csv])
         assert exit_code == 0
         out = capsys.readouterr().out
         assert "Validex score:" in out
 
     def test_audit_complete_standard_prints_high_confidence(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "complete.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "complete.csv",
             "compound_id,logFC,p_value,fdr,Annotation\n"
-            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n")
+            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n",
+        )
         cli.main(["audit", csv])
         out = capsys.readouterr().out
         assert "Audit confidence: high" in out
 
     def test_audit_dataset_c_prints_low_confidence(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "dataset_c.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "dataset_c.csv",
             "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
-            "M1,1.5,10,15,confirmed\nM2,-0.3,5,4,putative\n")
+            "M1,1.5,10,15,confirmed\nM2,-0.3,5,4,putative\n",
+        )
         cli.main(["audit", csv])
         out = capsys.readouterr().out
         assert "Audit confidence: low" in out
 
     def test_audit_dataset_c_prints_score_40(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "dataset_c.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "dataset_c.csv",
             "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
-            "M1,1.5,10,15,confirmed\nM2,-0.3,5,4,putative\n")
+            "M1,1.5,10,15,confirmed\nM2,-0.3,5,4,putative\n",
+        )
         cli.main(["audit", csv])
         out = capsys.readouterr().out
         assert "Validex score: 40/100" in out
 
     def test_audit_ambiguous_pvalue_prints_medium_confidence(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "ambig.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "ambig.csv",
             "compound_id,logFC,p_value,pval,FDR,Annotation\n"
-            "M1,1.5,0.01,0.01,0.05,confirmed\nM2,-0.3,0.20,0.20,0.40,putative\n")
+            "M1,1.5,0.01,0.01,0.05,confirmed\nM2,-0.3,0.20,0.20,0.40,putative\n",
+        )
         cli.main(["audit", csv])
         out = capsys.readouterr().out
         assert "Audit confidence: medium" in out
 
     def test_audit_complete_standard_prints_100(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "complete.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "complete.csv",
             "compound_id,logFC,p_value,fdr,Annotation\n"
-            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n")
+            "M1,1.5,0.01,0.05,confirmed\nM2,-0.3,0.20,0.40,putative\n",
+        )
         cli.main(["audit", csv])
         out = capsys.readouterr().out
         assert "100/100" in out
 
     def test_audit_writes_report_file_when_output_given(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "complete.csv",
-            "compound_id,logFC,p_value,fdr,Annotation\n"
-            "M1,1.5,0.01,0.05,confirmed\n")
+        csv = self._write_csv(
+            tmp_path,
+            "complete.csv",
+            "compound_id,logFC,p_value,fdr,Annotation\nM1,1.5,0.01,0.05,confirmed\n",
+        )
         report = str(tmp_path / "report.md")
         exit_code = cli.main(["audit", csv, "--output", report])
         assert exit_code == 0
@@ -85,12 +108,76 @@ class TestCliAudit:
         assert exit_code != 0
 
     def test_audit_output_includes_findings_section(self, tmp_path, capsys):
-        csv = self._write_csv(tmp_path, "dataset_c.csv",
+        csv = self._write_csv(
+            tmp_path,
+            "dataset_c.csv",
             "compound_id,logFC,Mean_Control,Mean_Case,Annotation\n"
-            "M1,1.5,10,15,confirmed\n")
+            "M1,1.5,10,15,confirmed\n",
+        )
         cli.main(["audit", csv])
         out = capsys.readouterr().out
         assert "Findings:" in out
+
+    def test_empty_file_prints_controlled_error_without_traceback(
+        self, tmp_path, capsys
+    ):
+        csv_path = tmp_path / "empty.csv"
+        csv_path.write_bytes(b"")
+
+        exit_code = cli.main(["audit", str(csv_path)])
+        captured = capsys.readouterr()
+
+        assert exit_code != 0
+        assert "EMPTY_FILE" in captured.err
+        assert "Traceback" not in captured.err
+
+    def test_malformed_csv_prints_controlled_error_without_traceback(
+        self, tmp_path, capsys
+    ):
+        csv_path = tmp_path / "malformed.csv"
+        csv_path.write_text(
+            "compound_id,p_value,fdr\nA,0.01,0.02\nB,0.03\n", encoding="utf-8"
+        )
+
+        exit_code = cli.main(["audit", str(csv_path)])
+        captured = capsys.readouterr()
+
+        assert exit_code != 0
+        assert "MALFORMED_CSV" in captured.err
+        assert "Traceback" not in captured.err
+
+    def test_invalid_encoding_prints_controlled_error_without_traceback(
+        self, tmp_path, capsys
+    ):
+        csv_path = tmp_path / "encoding.csv"
+        csv_path.write_bytes(b"compound_id,p_value\nA,\xff\n")
+
+        exit_code = cli.main(["audit", str(csv_path)])
+        captured = capsys.readouterr()
+
+        assert exit_code != 0
+        assert "INVALID_ENCODING" in captured.err
+        assert "Traceback" not in captured.err
+
+    def test_cli_and_api_classify_same_malformed_file(self, tmp_path, capsys):
+        csv_path = tmp_path / "malformed.csv"
+        payload = b"compound_id,p_value,fdr\nA,0.01,0.02\nB,0.03\n"
+        csv_path.write_bytes(payload)
+
+        cli_exit_code = cli.main(["audit", str(csv_path)])
+        cli_err = capsys.readouterr().err
+
+        app = create_app(config=DEFAULT_CONFIG)
+        client = TestClient(app)
+        response = client.post(
+            "/audit",
+            files={"file": ("malformed.csv", payload, "text/csv")},
+            data={"context": "{}"},
+        )
+
+        assert cli_exit_code != 0
+        assert "MALFORMED_CSV" in cli_err
+        assert response.json()["error_code"] == "MALFORMED_CSV"
 
 
 def test_main_config_show_creates_private_config(tmp_path, monkeypatch, capsys):

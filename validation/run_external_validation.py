@@ -19,13 +19,14 @@ No external validation results are claimed unless a completed labeled external
 dataset is provided and the output JSON is committed with full protocol
 documentation. See docs/external_validation_protocol.md.
 """
+
 from __future__ import annotations
 
 import argparse
 import csv
 import json
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -81,16 +82,32 @@ def _flag_to_code(title: str) -> str:
 # ---------------------------------------------------------------------------
 
 REGISTRY_REQUIRED_COLUMNS = {
-    "dataset_id", "source_title", "source_type", "source_url_or_doi",
-    "license_or_access_note", "table_filename", "table_description",
-    "organism_or_sample_context", "platform_if_known", "study_domain",
-    "included", "exclusion_reason", "notes",
+    "dataset_id",
+    "source_title",
+    "source_type",
+    "source_url_or_doi",
+    "license_or_access_note",
+    "table_filename",
+    "table_description",
+    "organism_or_sample_context",
+    "platform_if_known",
+    "study_domain",
+    "included",
+    "exclusion_reason",
+    "notes",
 }
 
 LABELS_REQUIRED_COLUMNS = {
-    "dataset_id", "table_filename", "compound_id", "effect_size",
-    "p_value", "fdr", "annotation", "expected_findings",
-    "reviewer_id", "review_notes",
+    "dataset_id",
+    "table_filename",
+    "compound_id",
+    "effect_size",
+    "p_value",
+    "fdr",
+    "annotation",
+    "expected_findings",
+    "reviewer_id",
+    "review_notes",
 }
 
 CANONICAL_FIELDS = ["compound_id", "effect_size", "p_value", "fdr", "annotation"]
@@ -102,7 +119,9 @@ def _load_csv(path: Path) -> list[dict[str, str]]:
         return [dict(row) for row in reader]
 
 
-def _check_required_columns(rows: list[dict[str, str]], required: set[str], path: Path) -> None:
+def _check_required_columns(
+    rows: list[dict[str, str]], required: set[str], path: Path
+) -> None:
     if not rows:
         return
     actual = set(rows[0].keys())
@@ -118,9 +137,11 @@ def _check_required_columns(rows: list[dict[str, str]], required: set[str], path
 # Label parsing
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ParsedLabel:
     """Parsed canonical field label for one table."""
+
     dataset_id: str
     table_filename: str
     # Each canonical field: None = absent, str = expected exact column, list = AMBIGUOUS candidates
@@ -149,7 +170,7 @@ def _parse_field_label(raw: str) -> str | list[str] | None:
     if raw == "":
         return None
     if raw.startswith("AMBIGUOUS:"):
-        candidates = raw[len("AMBIGUOUS:"):].split("|")
+        candidates = raw[len("AMBIGUOUS:") :].split("|")
         return [c.strip() for c in candidates if c.strip()]
     return raw
 
@@ -179,6 +200,7 @@ def parse_label_row(row: dict[str, str]) -> ParsedLabel:
 # ---------------------------------------------------------------------------
 # Metric computation
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class FieldResult:
@@ -247,7 +269,11 @@ class TableResult:
 
     @property
     def finding_tp(self) -> int:
-        return sum(1 for f in self.expected_finding_codes if _finding_matches(f, self.actual_finding_codes))
+        return sum(
+            1
+            for f in self.expected_finding_codes
+            if _finding_matches(f, self.actual_finding_codes)
+        )
 
     @property
     def finding_fp(self) -> int:
@@ -286,7 +312,9 @@ def compute_table_result(
     for canonical in CANONICAL_FIELDS:
         expected = label.field_value(canonical)
         actual = detected.get(canonical)
-        field_results.append(FieldResult(canonical=canonical, expected=expected, actual=actual))
+        field_results.append(
+            FieldResult(canonical=canonical, expected=expected, actual=actual)
+        )
 
     exact_schema_match = all(r.is_tp or r.is_tn for r in field_results)
 
@@ -300,7 +328,9 @@ def compute_table_result(
     covered_actuals: set[str] = set()
     for ec in expected_codes:
         if _normalize_finding_code(ec) == "ambiguous_schema_field":
-            covered_actuals.update(ac for ac in actual_finding_codes if ac in _AMBIGUOUS_FINDING_CODES)
+            covered_actuals.update(
+                ac for ac in actual_finding_codes if ac in _AMBIGUOUS_FINDING_CODES
+            )
         else:
             covered_actuals.add(_normalize_finding_code(ec))
     unexpected = [ac for ac in actual_finding_codes if ac not in covered_actuals]
@@ -336,7 +366,8 @@ def aggregate_metrics(results: list[TableResult]) -> dict[str, Any]:
 
     exact_match_rate = (
         sum(1 for r in results if r.exact_schema_match) / len(results)
-        if results else 0.0
+        if results
+        else 0.0
     )
 
     scores = [r.score for r in results]
@@ -376,6 +407,7 @@ def aggregate_metrics(results: list[TableResult]) -> dict[str, Any]:
 # Runner
 # ---------------------------------------------------------------------------
 
+
 def run_external_validation(
     registry_path: Path,
     labels_path: Path,
@@ -410,10 +442,15 @@ def run_external_validation(
         labels_index[label.dataset_id] = label
 
     # Filter registry to included entries
-    included = [r for r in registry_rows if r.get("included", "").strip().lower() == "yes"]
+    included = [
+        r for r in registry_rows if r.get("included", "").strip().lower() == "yes"
+    ]
     if not included:
-        print("WARNING: No included entries found in registry. "
-              "Set included=yes for tables to validate.", file=sys.stderr)
+        print(
+            "WARNING: No included entries found in registry. "
+            "Set included=yes for tables to validate.",
+            file=sys.stderr,
+        )
 
     results: list[TableResult] = []
     missing_tables: list[str] = []
@@ -423,7 +460,9 @@ def run_external_validation(
         table_filename = reg_row["table_filename"].strip()
 
         if not table_filename:
-            print(f"  SKIP {dataset_id}: no table_filename (redistribution may not be permitted).")
+            print(
+                f"  SKIP {dataset_id}: no table_filename (redistribution may not be permitted)."
+            )
             continue
 
         table_path = tables_dir / table_filename
@@ -432,7 +471,10 @@ def run_external_validation(
             continue
 
         if dataset_id not in labels_index:
-            print(f"  SKIP {dataset_id}: no label row found in labels file.", file=sys.stderr)
+            print(
+                f"  SKIP {dataset_id}: no label row found in labels file.",
+                file=sys.stderr,
+            )
             continue
 
         label = labels_index[dataset_id]
@@ -453,7 +495,7 @@ def run_external_validation(
 
     if missing_tables:
         msg = (
-            f"Missing table file(s):\n"
+            "Missing table file(s):\n"
             + "\n".join(f"  {t}" for t in missing_tables)
             + "\n\nTable CSV files must be present in --tables-dir. "
             "If redistribution is not permitted, download them separately."
@@ -466,28 +508,32 @@ def run_external_validation(
     for r in results:
         fp_details = [
             {"canonical": fr.canonical, "actual": fr.actual}
-            for fr in r.field_results if fr.is_fp
+            for fr in r.field_results
+            if fr.is_fp
         ]
         fn_details = [
             {"canonical": fr.canonical, "expected": str(fr.expected)}
-            for fr in r.field_results if fr.is_fn
+            for fr in r.field_results
+            if fr.is_fn
         ]
-        table_details.append({
-            "dataset_id": r.dataset_id,
-            "table_filename": r.table_filename,
-            "score": r.score,
-            "audit_confidence": r.audit_confidence,
-            "field_tp": r.field_tp,
-            "field_fp": r.field_fp,
-            "field_fn": r.field_fn,
-            "field_tn": r.field_tn,
-            "finding_tp": r.finding_tp,
-            "finding_fp": r.finding_fp,
-            "finding_fn": r.finding_fn,
-            "exact_schema_match": r.exact_schema_match,
-            "false_positive_details": fp_details,
-            "false_negative_details": fn_details,
-        })
+        table_details.append(
+            {
+                "dataset_id": r.dataset_id,
+                "table_filename": r.table_filename,
+                "score": r.score,
+                "audit_confidence": r.audit_confidence,
+                "field_tp": r.field_tp,
+                "field_fp": r.field_fp,
+                "field_fn": r.field_fn,
+                "field_tn": r.field_tn,
+                "finding_tp": r.finding_tp,
+                "finding_fp": r.finding_fp,
+                "finding_fn": r.finding_fn,
+                "exact_schema_match": r.exact_schema_match,
+                "false_positive_details": fp_details,
+                "false_negative_details": fn_details,
+            }
+        )
 
     output = {
         "protocol_version": "1.0",
@@ -515,7 +561,9 @@ def print_report(output: dict[str, Any]) -> None:
     print("  Validex External Validation Report")
     print("=" * 70)
     print(f"  Tables processed:          {output.get('n_tables', 0)}")
-    print(f"  Exact schema match rate:   {output.get('exact_schema_match_rate', 0):.4f}")
+    print(
+        f"  Exact schema match rate:   {output.get('exact_schema_match_rate', 0):.4f}"
+    )
     print()
     print("  Field-level metrics:")
     print(f"    True Positives  (TP): {fl.get('true_positives', 0)}")
@@ -533,14 +581,20 @@ def print_report(output: dict[str, Any]) -> None:
     print(f"    Recall:               {find.get('recall', 0):.4f}")
     print()
     dist = output.get("confidence_distribution", {})
-    print(f"  Confidence distribution: high={dist.get('high',0)} medium={dist.get('medium',0)} low={dist.get('low',0)}")
+    print(
+        f"  Confidence distribution: high={dist.get('high', 0)} medium={dist.get('medium', 0)} low={dist.get('low', 0)}"
+    )
     print("=" * 70)
     print()
     if output.get("status") == "no_tables_processed":
-        print("  NOTE: No tables were processed. Add labeled tables to run external validation.")
+        print(
+            "  NOTE: No tables were processed. Add labeled tables to run external validation."
+        )
         print("  See docs/external_validation_protocol.md for the full protocol.")
     elif output.get("status") == "completed":
-        print("  IMPORTANT: These results apply only to the labeled external dataset used.")
+        print(
+            "  IMPORTANT: These results apply only to the labeled external dataset used."
+        )
         print("  They do not imply general accuracy on arbitrary metabolomics tables.")
         print("  See docs/external_validation_protocol.md for claims discipline rules.")
     print()
@@ -549,6 +603,7 @@ def print_report(output: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -561,8 +616,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--registry", required=True, help="Path to registry CSV file.")
     p.add_argument("--labels", required=True, help="Path to labels CSV file.")
-    p.add_argument("--tables-dir", required=True, help="Directory containing table CSV files.")
-    p.add_argument("--output", default=None, help="Optional path to write JSON results.")
+    p.add_argument(
+        "--tables-dir", required=True, help="Directory containing table CSV files."
+    )
+    p.add_argument(
+        "--output", default=None, help="Optional path to write JSON results."
+    )
     return p
 
 
