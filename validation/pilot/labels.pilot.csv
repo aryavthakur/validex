@@ -1,5 +1,0 @@
-dataset_id,table_filename,compound_id,effect_size,p_value,fdr,annotation,expected_findings,reviewer_id,review_notes
-PILOT_001,PILOT_001_ST000915.csv,Metabolite,,P-value,FDR adjusted P-value,AMBIGUOUS:Main class|Sub class,ambiguous_schema_field,AT,F value is a test statistic and is not labeled as effect_size. Main class and Sub class are ambiguous annotation candidates.
-PILOT_002,PILOT_002_ST002843.csv,Metabolite,,P-value,FDR adjusted P-value,AMBIGUOUS:Main class|Sub class,ambiguous_schema_field,AT,F value is a test statistic and is not labeled as effect_size. Main class and Sub class are ambiguous annotation candidates.
-PILOT_003,PILOT_003_ST002334.csv,Metabolite,,P-value,FDR adjusted P-value,AMBIGUOUS:Main class|Sub class,ambiguous_schema_field,AT,F value is a test statistic and is not labeled as effect_size. Main class and Sub class are ambiguous annotation candidates.
-PILOT_004,PILOT_004_ST000164_cleaned.csv,Metabolite,,P-value,FDR adjusted P-value,AMBIGUOUS:Main class|Sub class,ambiguous_schema_field,AT,F value is a test statistic and is not labeled as effect_size. Main class and Sub class are ambiguous annotation candidates.

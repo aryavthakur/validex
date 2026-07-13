@@ -1,13 +1,13 @@
-# Pilot Dry-Run Results
+# Pilot Results Directory
 
-Pilot result files in this directory are local dry-run outputs.
+This tracked README is the repository anchor for
+`validation/pilot/results/`; a `.gitkeep` file is unnecessary.
 
-They are not committed by default. The repository `.gitignore` keeps generated
-pilot result JSON files local unless a reviewer intentionally changes that
-policy for a protocol-compliant release.
+All other files and nested directories here are generated, local pilot output
+and are ignored by Git. They are not committed by default. Do not add a result
+file merely to keep this directory present.
 
-Pilot dry-run outputs are not external validation results and do not constitute
-external validation claims. External validation requires a curated labeled
-dataset, protocol-compliant review, and intentionally released results.
-
-The main repo does not claim external validation from pilot dry runs.
+Pilot results are workflow-test artifacts, not external validation evidence or
+external validation claims. Formal external validation requires a curated,
+reproducible labeled dataset, protocol-compliant independent review, and
+intentionally released results with appropriate licensing and provenance.

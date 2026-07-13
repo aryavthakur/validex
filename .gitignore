@@ -18,9 +18,11 @@ venv/
 .coverage
 htmlcov/
 outputs/
-validation/pilot/results/*
-!validation/pilot/results/README.md
-validation/pilot/tables/*.csv
-validation/pilot/tables/*.tsv
-validation/pilot/tables/*.xlsx
-validation/pilot/tables/*.xls
+/validation/pilot/results/*
+!/validation/pilot/results/README.md
+/validation/pilot/labels.pilot.csv
+!/validation/pilot/labels.pilot.template.csv
+/validation/pilot/tables/*.[cC][sS][vV]
+/validation/pilot/tables/*.[tT][sS][vV]
+/validation/pilot/tables/*.[xX][lL][sS][xX]
+/validation/pilot/tables/*.[xX][lL][sS]

@@ -90,3 +90,20 @@ Not yet completed.
 ## 16. Final Inclusion Decision
 
 pending — S1 Data and S2 Data column headers must be directly confirmed before labeling or inclusion decision.
+
+## 17. Evidence and Current Status
+
+Expected finding before validation:
+Deferred. `missing_p_value|missing_fdr` is only a tentative possibility if the
+result table contains VIP and fold change without probability columns.
+
+Observed local finding:
+None recorded. No local label row or inspected result-table header is preserved
+for this candidate.
+
+Reproducibility:
+The tracked repository contains candidate metadata only. A local source table
+must be obtained and directly inspected before labels or Validex findings can be
+evaluated.
+
+Current evidence status: pending

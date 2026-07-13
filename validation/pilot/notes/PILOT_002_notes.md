@@ -49,7 +49,8 @@ S1 Table at: https://doi.org/10.1371/journal.pone.0240764.s001
 
 ## 9. Header Row Notes
 
-Confirmed column headers (fetched from S1 Table XLSX):
+The tracked 2026-06-25 triage note records these headers as fetched from the S1
+Table XLSX:
 
 - Metabolite
 - Beta_Random
@@ -70,10 +71,12 @@ None observed. Single header row.
 
 ## 11. Manual Label Decisions
 
-Header row inspected: yes, from previously fetched source metadata.
+The tracked triage note records direct header inspection from fetched source
+metadata. The source workbook itself is not tracked.
 
-Local table filename: none. No local CSV/TSV/XLSX is present in
-`validation/pilot/tables/`.
+No local file is provenance-linked to this PLOS candidate. An ignored
+ST002843-named CSV may exist in a developer workspace, but the tracked
+repository does not establish that it is the source described above.
 
 Labeling deferred — XLSX must be available locally and converted to CSV before
 formal labeling.
@@ -127,23 +130,24 @@ Not yet completed.
 pending — headers confirmed; labeling deferred until CSV prepared and the
 suffix-qualified p-value policy is explicitly resolved.
 
-## 17. Local Pilot Dry Run Decision
+## 17. Evidence and Current Status
 
-Header row inspected: yes
+Expected finding before validation:
+`missing_p_value|missing_fdr` was the tentative prediction if the
+suffix-qualified statistical columns remain unsupported; the decision was
+deferred pending local inspection.
 
-Local table filename: PILOT_002_ST002843.csv
+Observed local finding:
+A prior local labels row recorded a separate file named
+`PILOT_002_ST002843.csv`, the shared ST header mapping documented in
+`uploaded_table_header_inspection.md`, and `ambiguous_schema_field`. The tracked
+repository does not establish that ST002843 is the PLOS candidate identified in
+Sections 2–3.
 
-Exact inspected headers: Metabolite, F value, P-value, FDR adjusted P-value, Main class, Sub class
+Reproducibility:
+The ST source table is local-only and untracked. The recorded mapping is a
+historical manual observation, not evidence that the current code produces the
+same output, and its identity/provenance linkage to PILOT_002 cannot be verified
+from the tracked repository.
 
-Manual label decisions:
-- compound_id = Metabolite
-- effect_size = empty
-- p_value = P-value
-- fdr = FDR adjusted P-value
-- annotation = AMBIGUOUS:Main class|Sub class
-
-Expected findings: empty
-
-Ambiguities: annotation has Main class and Sub class
-
-Final inclusion decision: included for pilot dry run only
+Current evidence status: locally_inspected

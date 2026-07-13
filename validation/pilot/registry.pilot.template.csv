@@ -1,6 +1,6 @@
-dataset_id,source_title,source_type,source_url_or_doi,license_or_access_note,table_filename,table_description,organism_or_sample_context,platform_if_known,study_domain,included,exclusion_reason,notes
-PILOT_001,,,,,,,,,,,,
-PILOT_002,,,,,,,,,,,,
-PILOT_003,,,,,,,,,,,,
-PILOT_004,,,,,,,,,,,,
-PILOT_005,,,,,,,,,,,,
+dataset_id,source_title,source_type,source_url_or_doi,license_or_access_note,table_filename,table_description,organism_or_sample_context,platform_if_known,study_domain,included,evidence_status,exclusion_reason,notes
+PILOT_001,,,,,,,,,,,,,
+PILOT_002,,,,,,,,,,,,,
+PILOT_003,,,,,,,,,,,,,
+PILOT_004,,,,,,,,,,,,,
+PILOT_005,,,,,,,,,,,,,

@@ -72,4 +72,18 @@ Use `create_candidate_note.py` to create a pre-filled copy automatically.
 
 ## 16. Final Inclusion Decision
 
-<!-- yes / no — and reason if no -->
+<!-- included=yes / pending / no, with a concise run-readiness reason -->
+
+## 17. Evidence and Current Status
+
+Expected finding before validation:
+<!-- Record tentative predictions made before running Validex; use "none predicted" or "not established" when appropriate. -->
+
+Observed local finding:
+<!-- Record only findings actually observed from direct local inspection or a local run. Distinguish manual observations from code output. -->
+
+Reproducibility:
+<!-- State whether the source and procedure needed to reproduce the observation are tracked. Never treat an untracked table or historical label row as reproducible evidence. -->
+
+Current evidence status: pending
+<!-- One of: pending / locally_inspected / locally_validated / excluded -->

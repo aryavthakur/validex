@@ -58,7 +58,8 @@ FTP path: ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS733
 
 ## 9. Header Row Notes
 
-Confirmed column headers (fetched via MetaboLights API 2026-06-25):
+The tracked 2026-06-25 triage note records these headers as fetched via the
+MetaboLights API:
 
 All 35 columns in order:
 database_identifier, chemical_formula, smiles, inchi, metabolite_identification, mass_to_charge, fragmentation, modifications, charge, retention_time, taxid, species, database, database_version, reliability, uri, search_engine, search_engine_score, smallmolecule_abundance_sub, smallmolecule_abundance_stdev_sub, smallmolecule_abundance_std_error_sub, Fold change, p-value, Compound concentration ratio, SA1, SA2, SA3, SA4, SA5, SB1, SB2, SB3, SB4, SB5
@@ -71,10 +72,12 @@ None. Single header row. Standard TSV. Column names use mixed case ("Fold change
 
 ## 11. Manual Label Decisions
 
-Header row inspected: yes, from previously fetched source metadata.
+The tracked triage note records direct header inspection from fetched source
+metadata. The source TSV itself is not tracked.
 
-Local table filename: none. No local CSV/TSV is present in
-`validation/pilot/tables/`.
+No local file is provenance-linked to this MTBLS733 candidate. An ignored
+ST002334-named CSV may exist in a developer workspace, but the tracked
+repository does not establish that it is the source described above.
 
 Labeling deferred until the table is available locally and redistribution rights
 are clarified. Based on confirmed headers:
@@ -116,23 +119,23 @@ Not yet completed.
 pending — headers confirmed; redistribution rights must be clarified before
 committing any table file. Labeling deferred until a local TSV/CSV is inspected.
 
-## 17. Local Pilot Dry Run Decision
+## 17. Evidence and Current Status
 
-Header row inspected: yes
+Expected finding before validation:
+`missing_fdr` was the tentative prediction for the MTBLS733 candidate described
+above, with a likely compound-identifier alias gap.
 
-Local table filename: PILOT_003_ST002334.csv
+Observed local finding:
+A prior local labels row recorded a separate file named
+`PILOT_003_ST002334.csv`, the shared ST header mapping documented in
+`uploaded_table_header_inspection.md`, and `ambiguous_schema_field`. The tracked
+repository does not establish that ST002334 is the MTBLS733 candidate identified
+in Sections 2–3.
 
-Exact inspected headers: Metabolite, F value, P-value, FDR adjusted P-value, Main class, Sub class
+Reproducibility:
+The ST source table is local-only and untracked. The recorded mapping is a
+historical manual observation, not evidence that the current code produces the
+same output, and its identity/provenance linkage to PILOT_003 cannot be verified
+from the tracked repository.
 
-Manual label decisions:
-- compound_id = Metabolite
-- effect_size = empty
-- p_value = P-value
-- fdr = FDR adjusted P-value
-- annotation = AMBIGUOUS:Main class|Sub class
-
-Expected findings: empty
-
-Ambiguities: annotation has Main class and Sub class
-
-Final inclusion decision: included for pilot dry run only
+Current evidence status: locally_inspected

@@ -24,7 +24,7 @@ CC BY 4.0 — PLOS ONE standard license. Redistribution would be permitted.
 
 However, supplementary files are in DOCX format, which is unsuitable for Validex input without manual reformatting.
 
-Licensing triage: `excluded_due_to_unsuitable_format`
+Licensing triage: `redistributable_confirmed`
 
 ## 6. Why This Table Is Eligible (Considered)
 
@@ -35,13 +35,15 @@ Licensing triage: `excluded_due_to_unsuitable_format`
 
 ## 7. Why This Table Might Be Excluded
 
-EXCLUDED: Supplementary tables S2 and S3 are in DOCX format. Machine-readable CSV ingestion requires manual copy-paste extraction of table data from the Word document. This violates the protocol requirement that tables be "usable as CSV input without reformatting."
-
-Note for future: if the authors publish a CSV version or the table is extracted by a reviewer, it could become a valid candidate.
+Supplementary tables S2 and S3 are in DOCX format. Validex cannot ingest them
+directly, and converting them to machine-readable CSV requires a documented
+preparation step. The candidate remains excluded under the current protocol;
+reconsider it only if the authors publish a machine-readable version or a
+reviewer documents and verifies an eligible conversion.
 
 ## 8. Table Filename
 
-NOT COMMITTED — excluded due to format
+NOT COMMITTED — public supplementary tables are DOCX
 
 S2 Table (DOCX): https://doi.org/10.1371/journal.pone.0232272.s005
 S3 Table (DOCX): https://doi.org/10.1371/journal.pone.0232272.s006
@@ -56,15 +58,18 @@ DOCX table structure — unknown. DOCX tables frequently have merged header cell
 
 ## 11. Manual Label Decisions
 
-N/A — excluded.
+Deferred. The original DOCX tables have not been directly inspected in the
+tracked repository.
 
 ## 12. Ambiguities
 
-N/A — excluded.
+The tracked repository cannot verify how DOCX headers or merged cells should be
+converted to CSV fields.
 
 ## 13. Expected Findings
 
-N/A — excluded.
+Not established. The original DOCX table structure and resulting CSV headers
+must be inspected before predicting Validex findings.
 
 ## 14. Reviewer Initials
 
@@ -72,29 +77,32 @@ AT
 
 ## 15. Second Reviewer Check
 
-N/A — excluded.
+Not yet completed.
 
 ## 16. Final Inclusion Decision
 
-no — excluded due to DOCX format. Supplementary tables require manual extraction before machine-readable CSV ingestion is possible. Recheck if a CSV version becomes available.
+no — excluded because the original candidate is distributed as DOCX and no
+verified, documented conversion is attributable to it.
 
-## 17. Local Pilot Dry Run Decision
+## 17. Evidence and Current Status
 
-Header row inspected: yes
+Expected finding before validation:
+No finding prediction was established because the original DOCX tables were not
+directly inspected.
 
-Local table filename: PILOT_004_ST000164_cleaned.csv
+Observed local finding:
+A prior local record names `PILOT_004_ST000164_cleaned.csv`, states that a blank
+first row was removed, and records the shared ST header mapping and
+`ambiguous_schema_field` documented in `uploaded_table_header_inspection.md`.
+The record does not include the source table, a conversion recipe, or evidence
+connecting ST000164 to the DOCX candidate in Sections 2–3. It is therefore an
+unverified local action, not a verified conversion of either DOCX supplement.
 
-Exact inspected headers: Metabolite, F value, P-value, FDR adjusted P-value, Main class, Sub class
+Reproducibility:
+The local CSV and original working files are untracked. Neither the cleanup nor
+the code output can be reproduced from the tracked repository. The
+identity/provenance linkage to PILOT_004 cannot be verified from the tracked
+repository, and the recorded mapping is not evidence that the current code
+produces the same output.
 
-Manual label decisions:
-- compound_id = Metabolite
-- effect_size = empty
-- p_value = P-value
-- fdr = FDR adjusted P-value
-- annotation = AMBIGUOUS:Main class|Sub class
-
-Expected findings: empty
-
-Ambiguities: annotation has Main class and Sub class
-
-Final inclusion decision: included for pilot dry run only
+Current evidence status: excluded

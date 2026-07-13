@@ -38,3 +38,6 @@ validex = ["static/**"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+  "repo_policy: requires a Git source checkout and validates repository tracking/ignore policy",
+]

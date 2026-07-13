@@ -53,7 +53,8 @@ Data2 through data8 are separate pairwise comparison tables.
 
 ## 9. Header Row Notes
 
-Confirmed column headers (fetched from elife-61980-fig1-data2-v2.xlsx, primary comparison sheet):
+The tracked 2026-06-25 triage note records these headers as fetched from
+elife-61980-fig1-data2-v2.xlsx, primary comparison sheet:
 
 - Metabolite
 - FC (1x PBS / 0.5x PBS)
@@ -67,10 +68,12 @@ None observed. Single header row. Sheet name encodes the comparison context.
 
 ## 11. Manual Label Decisions
 
-Header row inspected: yes, from previously fetched source metadata.
+The tracked triage note records direct header inspection from fetched source
+metadata. The source workbook itself is not tracked.
 
-Local table filename: none. No local CSV/TSV/XLSX is present in
-`validation/pilot/tables/`.
+No local file is provenance-linked to this eLife candidate. An ignored
+ST000915-named CSV may exist in a developer workspace, but the tracked
+repository does not establish that it is the source described above.
 
 Labeling deferred — a specific XLSX sheet must be selected and saved as CSV
 locally before `labels.pilot.csv` can include this candidate.
@@ -110,23 +113,23 @@ Not yet completed. Two-reviewer agreement required before formal external valida
 pending — headers confirmed; labeling deferred until a single-sheet local CSV is
 prepared and inspected.
 
-## 17. Local Pilot Dry Run Decision
+## 17. Evidence and Current Status
 
-Header row inspected: yes
+Expected finding before validation:
+`missing_p_value`, with a likely effect-size alias gap, was the tentative
+prediction for the eLife candidate described above.
 
-Local table filename: PILOT_001_ST000915.csv
+Observed local finding:
+A prior local labels row recorded a separate file named
+`PILOT_001_ST000915.csv`, the shared ST header mapping documented in
+`uploaded_table_header_inspection.md`, and `ambiguous_schema_field`. The tracked
+repository does not establish that ST000915 is the eLife candidate identified
+in Sections 2–3.
 
-Exact inspected headers: Metabolite, F value, P-value, FDR adjusted P-value, Main class, Sub class
+Reproducibility:
+The ST source table is local-only and untracked. The recorded mapping is a
+historical manual observation, not evidence that the current code produces the
+same output, and its identity/provenance linkage to PILOT_001 cannot be verified
+from the tracked repository.
 
-Manual label decisions:
-- compound_id = Metabolite
-- effect_size = empty
-- p_value = P-value
-- fdr = FDR adjusted P-value
-- annotation = AMBIGUOUS:Main class|Sub class
-
-Expected findings: empty
-
-Ambiguities: annotation has Main class and Sub class
-
-Final inclusion decision: included for pilot dry run only
+Current evidence status: locally_inspected
