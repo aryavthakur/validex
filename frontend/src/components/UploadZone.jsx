@@ -11,19 +11,23 @@ export default function UploadZone({ onFileAccepted }) {
     onFileAccepted(file);
   }, [onFileAccepted]);
 
+  const openPicker = () => inputRef.current?.click();
+
   return (
     <div className="upload-shell">
       <h1 className="upload-title">Upload your results CSV</h1>
-      <p className="upload-sub">Validex will detect your statistical schema and run a full validity audit.</p>
+      <p className="upload-sub">Validex audits supported CSV result-table fields and deterministic statistical-value checks.</p>
       <div
         className={`dropzone${dragging ? " drag-over" : ""}`}
         style={{ position: "relative" }}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
-        onClick={() => inputRef.current?.click()}
       >
-        <input ref={inputRef} type="file" accept=".csv" onChange={e => handleFile(e.target.files?.[0])} style={{ display: "none" }} />
+        <label htmlFor="validex-csv-upload" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+          Choose a CSV file for Validex audit
+        </label>
+        <input id="validex-csv-upload" ref={inputRef} type="file" accept=".csv" onChange={e => handleFile(e.target.files?.[0])} style={{ display: "none" }} />
         <BorderBeam
           size={160}
           duration={dragging ? 3 : 6}
@@ -33,7 +37,14 @@ export default function UploadZone({ onFileAccepted }) {
         />
         <div className="dropzone-icon">📊</div>
         <div className="dropzone-title">Drop your CSV here</div>
-        <div className="dropzone-sub">or click to browse files</div>
+        <button
+          type="button"
+          className="dropzone-sub"
+          onClick={openPicker}
+          style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer", font: "inherit" }}
+        >
+          or click to browse files
+        </button>
         <div className="dropzone-hint">CSV · up to 200 MB</div>
       </div>
     </div>

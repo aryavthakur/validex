@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import { AnimatedBackground } from "./components/ui/background-paths";
 import UploadZone from "./components/UploadZone";
 import ContextForm from "./components/ContextForm";
@@ -8,7 +8,10 @@ import DataPreview from "./components/DataPreview";
 import { Meteors } from "./components/ui/Meteors";
 import { TypingAnimation } from "./components/ui/TypingAnimation";
 import { Ripple } from "./components/ui/Ripple";
-import { DEMO_RESULTS } from "./demoData";
+import {
+  adaptAuditResponse,
+  AUDIT_LOADING_MESSAGES,
+} from "./lib/auditViewModel";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -164,9 +167,10 @@ export default function App() {
     if (hash.startsWith("#r=")) {
       try {
         const { results: sharedResults, context: sharedContext } = decodeSharePayload(hash.slice(3));
-        setResults(sharedResults);
+        const sharedViewModel = sharedResults?.kind ? sharedResults : adaptAuditResponse(sharedResults);
+        setResults(sharedViewModel);
         setContext(prev => ({ ...prev, ...sharedContext }));
-        setFile({ name: sharedResults.overview?.filename || "shared-report.csv" });
+        setFile({ name: sharedViewModel.summary?.filename || "shared-report.csv" });
         setView("results");
         // Clean hash from URL without triggering a reload
         window.history.replaceState(null, "", window.location.pathname);
@@ -174,7 +178,7 @@ export default function App() {
         // Malformed share URL — ignore, stay on landing
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileAccepted = useCallback((f) => {
     setFile(f);
@@ -188,12 +192,6 @@ export default function App() {
     setView("upload");
     setResults(null);
     setError(null);
-  };
-
-  const handleDemo = () => {
-    setResults(DEMO_RESULTS);
-    setFile({ name: DEMO_RESULTS.overview.filename });
-    setView("results");
   };
 
   const handleRunAudit = async () => {
@@ -210,7 +208,7 @@ export default function App() {
         throw new Error(err.detail || `Server error ${res.status}`);
       }
       const data = await res.json();
-      setResults(data);
+      setResults(adaptAuditResponse(data));
       setView("results");
     } catch (e) {
       setError(e.message || "Audit failed. Is the backend running?");
@@ -225,7 +223,7 @@ export default function App() {
         onLaunch={() => setView("upload")}
         onBack={() => setView("upload")}
         onReset={view !== "upload" ? handleReset : null}
-        isDemo={results === DEMO_RESULTS}
+        isDemo={false}
       />
       <StepBar view={view} />
       <main className="app-main" style={{ paddingTop: 92 }}>
@@ -253,7 +251,7 @@ export default function App() {
             results={results}
             file={file}
             onReset={handleReset}
-            isDemo={results === DEMO_RESULTS}
+            isDemo={false}
             context={context}
           />
         )}
@@ -262,15 +260,7 @@ export default function App() {
   );
 }
 
-const AUDIT_STEPS = [
-  "Parsing data matrix…",
-  "Checking sample integrity…",
-  "Validating normalization…",
-  "Scoring statistical design…",
-  "Evaluating batch effects…",
-  "Running flag checks…",
-  "Generating audit report…",
-];
+const AUDIT_STEPS = AUDIT_LOADING_MESSAGES;
 
 function RunningView({ file }) {
   const [stepIdx, setStepIdx] = useState(0);
@@ -362,10 +352,10 @@ function RunningView({ file }) {
 function Nav({ onLaunch, onBack, onReset, isDemo }) {
   return (
     <nav className="nav">
-      <a className="nav-logo" onClick={onBack || onLaunch} style={{ cursor: "pointer" }}>
+      <button className="nav-logo" type="button" onClick={onBack || onLaunch} style={{ cursor: "pointer", border: "none", background: "transparent" }}>
         <div className="nav-logo-mark">🧪</div>
         Validex
-      </a>
+      </button>
       <div className="nav-actions">
         {isDemo && (
           <span className="nav-tag" style={{ color: "var(--accent-warm)", borderColor: "rgba(200,185,154,0.2)" }}>
