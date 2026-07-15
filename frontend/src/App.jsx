@@ -97,9 +97,10 @@ function StepBar({ view }) {
 function PrivacyIndicator({ privacyStatus, aiStatus, compact = false }) {
   const provider = privacyStatus?.provider === "ollama" ? "Ollama" : "Local";
   const model = privacyStatus?.model || "llama3.2:3b";
+  const localOnly = privacyStatus?.local_only !== false;
   const unavailable = aiStatus && (!aiStatus.installed || !aiStatus.running || !aiStatus.model_installed);
   const setupMessage = !aiStatus?.installed
-    ? "Validex needs Ollama to run private local AI. Run validex again after setup completes."
+    ? "Validex needs Ollama for optional local AI explanations. Deterministic audit still works."
     : !aiStatus?.running
       ? "Ollama is not running. Run validex again after setup completes."
       : !aiStatus?.model_installed
@@ -117,14 +118,14 @@ function PrivacyIndicator({ privacyStatus, aiStatus, compact = false }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: unavailable ? "var(--amber)" : "var(--green)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          {unavailable ? "Local AI setup needed" : "Local AI active"}
+          {unavailable ? "AI optional" : localOnly ? "Local AI available" : "Remote AI host"}
         </span>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
           AI provider: {provider}
         </span>
       </div>
       <div style={{ fontSize: compact ? 12 : 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
-        Your dataset stays on this device. No cloud AI is used. Model: {model}.
+        Deterministic audit runs without AI. Optional AI receives structured summaries, not raw rows. {localOnly ? "Ollama is configured on loopback." : "Ollama is configured on a non-loopback host; data may leave this device."} Model: {model}.
         {setupMessage && <span style={{ display: "block", marginTop: 6, color: "var(--amber)" }}>{setupMessage}</span>}
       </div>
     </div>

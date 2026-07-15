@@ -13,8 +13,8 @@ import uvicorn
 
 from .ai.ollama_client import OllamaClient, OllamaError
 from .audit import audit_dataframe
-from .config import config_path, load_config, save_config
-from .ingestion import IngestionError, ingest_csv_path
+from .config import DEFAULT_CONFIG, config_path, load_config, save_config
+from .ingestion import IngestionError, ResourceLimits, ingest_csv_path
 from .server import create_app
 
 
@@ -111,7 +111,10 @@ def command_status(config: dict[str, Any]) -> int:
     print("AI provider: Ollama")
     print(f"Model: {config['model']}")
     print(f"Model installed: {config['model'] in models}")
-    print("Privacy mode: Local only, no cloud AI")
+    print(
+        "Privacy mode: Local only, no cloud AI when Ollama URL is loopback; "
+        "remote Ollama is not local-only"
+    )
     return 0
 
 
@@ -158,12 +161,32 @@ def command_audit(args: argparse.Namespace) -> int:
     csv_path: str = args.input
     report_path: str | None = getattr(args, "output", None)
 
+    defaults = ResourceLimits.from_config(DEFAULT_CONFIG)
+    limits = ResourceLimits(
+        max_upload_bytes=int(
+            getattr(args, "max_upload_bytes", 0) or defaults.max_upload_bytes
+        ),
+        max_rows=int(getattr(args, "max_rows", 0) or defaults.max_rows),
+        max_columns=int(getattr(args, "max_columns", 0) or defaults.max_columns),
+        max_total_cells=int(
+            getattr(args, "max_total_cells", 0) or defaults.max_total_cells
+        ),
+        max_cell_length=int(
+            getattr(args, "max_cell_length", 0) or defaults.max_cell_length
+        ),
+        max_header_length=int(
+            getattr(args, "max_header_length", 0) or defaults.max_header_length
+        ),
+    )
     if not os.path.exists(csv_path):
-        print(f"Error [FILE_NOT_FOUND]: file not found: {csv_path}", file=sys.stderr)
+        print(
+            f"Error [FILE_NOT_FOUND]: file not found: {os.path.basename(csv_path)}",
+            file=sys.stderr,
+        )
         return 1
 
     try:
-        ingested = ingest_csv_path(csv_path)
+        ingested = ingest_csv_path(csv_path, limits=limits)
     except IngestionError as exc:
         print(f"Error [{exc.code.value}]: {exc.message}", file=sys.stderr)
         return 1
@@ -211,7 +234,12 @@ def command_audit(args: argparse.Namespace) -> int:
         # Derive json path alongside report
         json_path = os.path.splitext(report_path)[0] + ".json"
         try:
-            run_audit(csv_path=csv_path, report_path=report_path, json_path=json_path)
+            run_audit(
+                csv_path=csv_path,
+                report_path=report_path,
+                json_path=json_path,
+                limits=limits,
+            )
         except IngestionError as exc:
             print(f"Error [{exc.code.value}]: {exc.message}", file=sys.stderr)
             return 1

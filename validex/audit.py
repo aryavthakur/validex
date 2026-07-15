@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd  # type: ignore[import-untyped]
 
-from .ingestion import IngestionMetadata, ingest_csv_path
+from .ingestion import IngestionMetadata, ResourceLimits, ingest_csv_path
 from .schema_mapper import detect_schema
 
 # Canonical fields considered critical for ambiguity penalty purposes
@@ -625,11 +625,12 @@ def run_audit(
     report_path: str,
     json_path: str | None = None,
     context: dict[str, Any] | None = None,
+    limits: ResourceLimits | None = None,
 ) -> str:
     if not os.path.exists(csv_path):
         raise FileNotFoundError("Input CSV not found: " + csv_path)
 
-    ingested = ingest_csv_path(csv_path)
+    ingested = ingest_csv_path(csv_path, limits=limits)
     df = ingested.dataframe
     result = audit_dataframe(df, context, metadata=ingested.metadata)
 

@@ -73,13 +73,17 @@ function normalizePreview(preview = {}, detectedSchema) {
 }
 
 function normalizeAi(raw) {
-  const score = Number.isFinite(raw?.ai_score) ? raw.ai_score : null;
-  const reason = typeof raw?.ai_score_reason === "string" && raw.ai_score_reason.trim()
+  const analysis = asObject(raw?.ai_analysis);
+  const summary = typeof analysis.summary === "string" && analysis.summary.trim()
+    ? analysis.summary.trim()
+    : null;
+  const legacyReason = typeof raw?.ai_score_reason === "string" && raw.ai_score_reason.trim()
     ? raw.ai_score_reason.trim()
     : null;
+  const reason = summary || legacyReason;
   return {
-    available: score !== null || reason !== null,
-    score,
+    available: reason !== null,
+    score: null,
     reason,
     label: "Optional local AI explanation",
   };

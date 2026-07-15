@@ -6,15 +6,38 @@ from typing import Any
 
 import httpx
 
+from ..config import validate_ollama_url
+
 
 class OllamaError(RuntimeError):
     pass
 
 
 class OllamaClient:
-    def __init__(self, base_url: str = "http://localhost:11434", timeout: float = 60.0):
-        self.base_url = base_url.rstrip("/")
+    def __init__(
+        self,
+        base_url: str = "http://localhost:11434",
+        timeout: float = 60.0,
+        *,
+        connect_timeout: float = 5.0,
+        read_timeout: float | None = None,
+        max_response_bytes: int = 64 * 1024,
+    ):
+        self.base_url = validate_ollama_url(base_url)
         self.timeout = timeout
+        self.connect_timeout = connect_timeout
+        self.read_timeout = read_timeout or timeout
+        self.max_response_bytes = max_response_bytes
+
+    def _timeout(self, timeout: float | None = None) -> httpx.Timeout:
+        read_timeout = timeout or self.read_timeout
+        return httpx.Timeout(
+            timeout=read_timeout,
+            connect=self.connect_timeout,
+            read=read_timeout,
+            write=min(10.0, read_timeout),
+            pool=self.connect_timeout,
+        )
 
     def is_installed(self) -> bool:
         return shutil.which("ollama") is not None
@@ -25,16 +48,17 @@ class OllamaClient:
 
     def health(self) -> dict[str, Any]:
         try:
-            response = httpx.get(f"{self.base_url}/api/tags", timeout=5.0)
+            response = httpx.get(f"{self.base_url}/api/tags", timeout=self._timeout(5.0))
             response.raise_for_status()
             return {"running": True, "error": None}
         except Exception as exc:
-            return {"running": False, "error": str(exc)}
+            return {"running": False, "error": self._safe_error(exc)}
 
     def tags(self) -> dict[str, Any]:
         try:
-            response = httpx.get(f"{self.base_url}/api/tags", timeout=10.0)
+            response = httpx.get(f"{self.base_url}/api/tags", timeout=self._timeout(10.0))
             response.raise_for_status()
+            self._check_response_size(response)
             return response.json()
         except Exception as exc:
             raise OllamaError("Ollama is not running at " + self.base_url) from exc
@@ -66,11 +90,41 @@ class OllamaClient:
             response = httpx.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=timeout or self.timeout,
+                timeout=self._timeout(timeout or self.timeout),
             )
             response.raise_for_status()
-            return response.json().get("response", "")
+            self._check_response_size(response)
+            model_payload = response.json()
+            if not isinstance(model_payload, dict):
+                raise OllamaError("Local Ollama returned an invalid response.")
+            result = model_payload.get("response", "")
+            if not isinstance(result, str):
+                raise OllamaError("Local Ollama returned a non-text response.")
+            return result
         except httpx.TimeoutException as exc:
             raise OllamaError("Local Ollama model timed out.") from exc
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+            if status_code == 404:
+                raise OllamaError("Configured Ollama model is unavailable.") from exc
+            if 400 <= status_code < 500:
+                raise OllamaError("Ollama rejected the model request.") from exc
+            raise OllamaError("Ollama model server failed.") from exc
         except Exception as exc:
+            if isinstance(exc, OllamaError):
+                raise
             raise OllamaError("Could not generate with local Ollama model.") from exc
+
+    def _check_response_size(self, response: httpx.Response) -> None:
+        content = getattr(response, "content", b"")
+        if content and len(content) > self.max_response_bytes:
+            raise OllamaError("Local Ollama response exceeded the configured size limit.")
+
+    def _safe_error(self, exc: Exception) -> str:
+        if isinstance(exc, httpx.TimeoutException):
+            return "Ollama request timed out."
+        if isinstance(exc, httpx.ConnectError):
+            return "Ollama is not reachable."
+        if isinstance(exc, httpx.HTTPStatusError):
+            return f"Ollama returned HTTP {exc.response.status_code}."
+        return "Ollama is unavailable."

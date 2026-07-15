@@ -37,6 +37,27 @@ _DEFAULT_MAX_BYTES = 200 * 1024 * 1024
 
 
 @dataclass(frozen=True)
+class ResourceLimits:
+    max_upload_bytes: int = 50 * 1024 * 1024
+    max_rows: int = 100_000
+    max_columns: int = 500
+    max_total_cells: int = 5_000_000
+    max_cell_length: int = 20_000
+    max_header_length: int = 300
+
+    @classmethod
+    def from_config(cls, config: dict[str, Any]) -> "ResourceLimits":
+        return cls(
+            max_upload_bytes=int(config.get("max_upload_bytes", cls.max_upload_bytes)),
+            max_rows=int(config.get("max_rows", cls.max_rows)),
+            max_columns=int(config.get("max_columns", cls.max_columns)),
+            max_total_cells=int(config.get("max_total_cells", cls.max_total_cells)),
+            max_cell_length=int(config.get("max_cell_length", cls.max_cell_length)),
+            max_header_length=int(config.get("max_header_length", cls.max_header_length)),
+        )
+
+
+@dataclass(frozen=True)
 class IngestionError(Exception):
     code: IngestionErrorCode
     message: str
@@ -45,6 +66,11 @@ class IngestionError(Exception):
 
     @property
     def http_status(self) -> int:
+        if (
+            self.code is IngestionErrorCode.RESOURCE_LIMIT_EXCEEDED
+            and self.details.get("limit") != "max_upload_bytes"
+        ):
+            return 422
         return _HTTP_STATUS_BY_CODE[self.code]
 
     def __str__(self) -> str:
@@ -91,13 +117,28 @@ def _require_csv_extension(filename: str) -> None:
         )
 
 
-def _decode_csv(contents: bytes, filename: str) -> str:
-    if len(contents) > _DEFAULT_MAX_BYTES:
+def _resource_limit_error(
+    filename: str, limit: str, maximum: int, actual: int
+) -> IngestionError:
+    return IngestionError(
+        code=IngestionErrorCode.RESOURCE_LIMIT_EXCEEDED,
+        message="CSV input exceeds the configured resource limits.",
+        filename=filename,
+        details={"limit": limit, "max": maximum, "actual": actual},
+    )
+
+
+def _decode_csv(contents: bytes, filename: str, limits: ResourceLimits) -> str:
+    if len(contents) > limits.max_upload_bytes:
         raise IngestionError(
             code=IngestionErrorCode.RESOURCE_LIMIT_EXCEEDED,
             message="CSV file exceeds the configured size limit.",
             filename=filename,
-            details={"max_bytes": _DEFAULT_MAX_BYTES, "actual_bytes": len(contents)},
+            details={
+                "limit": "max_upload_bytes",
+                "max": limits.max_upload_bytes,
+                "actual": len(contents),
+            },
         )
     if not contents:
         raise IngestionError(
@@ -170,6 +211,38 @@ def _validate_header(headers: list[str], filename: str) -> None:
         )
 
 
+def _validate_dimensions(
+    rows: list[list[str]], filename: str, limits: ResourceLimits
+) -> None:
+    column_count = len(rows[0])
+    row_count = max(0, len(rows) - 1)
+    if column_count > limits.max_columns:
+        raise _resource_limit_error(filename, "max_columns", limits.max_columns, column_count)
+    if row_count > limits.max_rows:
+        raise _resource_limit_error(filename, "max_rows", limits.max_rows, row_count)
+    total_cells = row_count * column_count
+    if total_cells > limits.max_total_cells:
+        raise _resource_limit_error(filename, "max_total_cells", limits.max_total_cells, total_cells)
+    for index, header in enumerate(rows[0], start=1):
+        if len(header) > limits.max_header_length:
+            raise _resource_limit_error(filename, "max_header_length", limits.max_header_length, len(header))
+    for row_number, row in enumerate(rows[1:], start=2):
+        for column_number, value in enumerate(row, start=1):
+            if len(value) > limits.max_cell_length:
+                raise IngestionError(
+                    code=IngestionErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                    message="CSV cell exceeds the configured length limit.",
+                    filename=filename,
+                    details={
+                        "limit": "max_cell_length",
+                        "max": limits.max_cell_length,
+                        "actual": len(value),
+                        "row_number": row_number,
+                        "column_number": column_number,
+                    },
+                )
+
+
 def _validate_row_lengths(rows: list[list[str]], filename: str) -> None:
     expected_columns = len(rows[0])
     for row_index, row in enumerate(rows[1:], start=2):
@@ -186,14 +259,20 @@ def _validate_row_lengths(rows: list[list[str]], filename: str) -> None:
             )
 
 
-def ingest_csv_bytes(contents: bytes, filename: str | None = None) -> IngestedTable:
+def ingest_csv_bytes(
+    contents: bytes,
+    filename: str | None = None,
+    limits: ResourceLimits | None = None,
+) -> IngestedTable:
+    active_limits = limits or ResourceLimits(max_upload_bytes=_DEFAULT_MAX_BYTES)
     safe_name = _safe_filename(filename)
     _require_csv_extension(safe_name)
-    text = _decode_csv(contents, safe_name)
+    text = _decode_csv(contents, safe_name, active_limits)
     rows = _parse_csv_rows(text, safe_name)
     headers = rows[0]
     _validate_header(headers, safe_name)
     _validate_row_lengths(rows, safe_name)
+    _validate_dimensions(rows, safe_name, active_limits)
 
     data_rows = rows[1:]
     if not data_rows:
@@ -214,10 +293,12 @@ def ingest_csv_bytes(contents: bytes, filename: str | None = None) -> IngestedTa
 
 
 def ingest_csv_path(
-    path: str | os.PathLike[str], filename: str | None = None
+    path: str | os.PathLike[str],
+    filename: str | None = None,
+    limits: ResourceLimits | None = None,
 ) -> IngestedTable:
     csv_path = Path(path)
     safe_name = _safe_filename(filename or csv_path.name)
     _require_csv_extension(safe_name)
     contents = csv_path.read_bytes()
-    return ingest_csv_bytes(contents, filename=safe_name)
+    return ingest_csv_bytes(contents, filename=safe_name, limits=limits)

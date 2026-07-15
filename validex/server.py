@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import asyncio
 import json
 import math
 import os
@@ -9,16 +10,29 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import anyio
 import pandas as pd  # type: ignore[import-untyped]
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .ai.prompting import AiPromptLimits, build_ai_prompt, minimized_audit_payload
 from .ai.ollama_client import OllamaClient, OllamaError
+from .ai.response_schema import AiResponseValidationError, parse_ai_analysis
 from .audit import run_audit
-from .config import DEFAULT_CONFIG, load_config
-from .ingestion import IngestionError, ingest_csv_bytes
+from .config import (
+    DEFAULT_CONFIG,
+    classify_provider_host,
+    load_config,
+    validate_config,
+)
+from .ingestion import (
+    IngestionError,
+    IngestionErrorCode,
+    ResourceLimits,
+    ingest_csv_bytes,
+)
 from .schema_mapper import detect_schema
 
 
@@ -58,40 +72,85 @@ def _ingestion_error_response(exc: IngestionError) -> JSONResponse:
     )
 
 
-def _dataset_summary(
-    df: pd.DataFrame, flags: list[dict[str, Any]], context: dict[str, Any]
-) -> str:
-    numeric = df.select_dtypes(include="number")
-    stats = numeric.describe().round(4).to_dict() if not numeric.empty else {}
-    summary = {
-        "shape": {"rows": int(df.shape[0]), "columns": int(df.shape[1])},
-        "columns": [str(column) for column in df.columns],
-        "missing_values": int(df.isna().sum().sum()),
-        "numeric_summary": stats,
-        "audit_flags": flags,
-        "study_context": context,
+async def _read_limited_upload(file: UploadFile, limits: ResourceLimits) -> bytes:
+    contents = await file.read(limits.max_upload_bytes + 1)
+    if len(contents) > limits.max_upload_bytes:
+        raise IngestionError(
+            code=IngestionErrorCode.RESOURCE_LIMIT_EXCEEDED,  # type: ignore[name-defined]
+            message="CSV file exceeds the configured size limit.",
+            filename=file.filename,
+            details={
+                "limit": "max_upload_bytes",
+                "max": limits.max_upload_bytes,
+                "actual": len(contents),
+            },
+        )
+    return contents
+
+
+def _safe_http_error(status_code: int, code: str, message: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={"error_code": code, "message": message},
+    )
+
+
+def _context_from_form(context: str) -> dict[str, Any]:
+    try:
+        parsed = json.loads(context)
+    except Exception:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _privacy_payload(app_config: dict[str, Any]) -> dict[str, Any]:
+    classification = classify_provider_host(app_config["ollama_url"])
+    return {
+        "provider": "ollama",
+        "ai_enabled": bool(app_config["ai_enabled"]),
+        "provider_host_classification": classification,
+        "local_only": classification == "loopback",
+        "cloud_ai_enabled": False,
+        "ollama_url": app_config["ollama_url"],
+        "model": app_config["model"],
+        "ai_receives_structured_audit_summaries": True,
+        "user_context_sent_to_ai": True,
+        "raw_rows_sent_to_ai": False,
+        "validex_retains_uploads": False,
+        "ollama_privacy_limitations": (
+            "Validex cannot guarantee Ollama logging, retention, or isolation from "
+            "other local processes. Remote Ollama hosts may receive data over the network."
+        ),
     }
-    return json.dumps(_json_safe(summary), allow_nan=False, default=str)[:16000]
 
 
 def create_app(config: dict[str, Any] | None = None) -> FastAPI:
-    app_config = {**DEFAULT_CONFIG, **(config or load_config())}
-    # Privacy boundary: runtime routes only expose/use local Ollama.
-    app_config["ai_provider"] = "ollama"
-    app_config["cloud_ai_enabled"] = False
-    ollama = OllamaClient(app_config["ollama_url"])
+    app_config = validate_config({**DEFAULT_CONFIG, **(config or load_config())})
+    limits = ResourceLimits.from_config(app_config)
+    prompt_limits = AiPromptLimits.from_config(app_config)
+    ai_semaphore = asyncio.Semaphore(int(app_config["ai_max_concurrent_requests"]))
+    try:
+        ollama = OllamaClient(
+            app_config["ollama_url"],
+            timeout=float(app_config["ai_timeout_seconds"]),
+            connect_timeout=float(app_config["ai_connect_timeout_seconds"]),
+            read_timeout=float(app_config["ai_read_timeout_seconds"]),
+            max_response_bytes=int(app_config["ai_max_response_bytes"]),
+        )
+    except TypeError:
+        ollama = OllamaClient(app_config["ollama_url"])
 
     app = FastAPI(title="Validex Local API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^http://(127\.0\.0\.1|localhost)(:\d+)?$",
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["content-type", "accept"],
     )
 
     @app.middleware("http")
-    async def frontend_cache_headers(request, call_next):
+    async def security_and_cache_headers(request, call_next):
         response = await call_next(request)
         path = request.url.path
         if path in {"/", "/index.html"} and "text/html" in response.headers.get(
@@ -108,6 +167,22 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
             ("/assets/", "/fonts/", "/mobile/")
         ):
             response.headers["Cache-Control"] = "no-cache"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self'; "
+            "media-src 'self'; "
+            "connect-src 'self' http://127.0.0.1:* http://localhost:*; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
         return response
 
     @app.get("/api/health")
@@ -120,13 +195,7 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
 
     @app.get("/api/privacy/status")
     def privacy_status():
-        return {
-            "provider": "ollama",
-            "local_only": True,
-            "cloud_ai_enabled": False,
-            "ollama_url": app_config["ollama_url"],
-            "model": app_config["model"],
-        }
+        return _privacy_payload(app_config)
 
     @app.get("/api/ai/status")
     def ai_status():
@@ -151,7 +220,7 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
             "model": app_config["model"],
             "model_installed": model_installed,
             "models": models,
-            "local_only": True,
+            "local_only": classify_provider_host(app_config["ollama_url"]) == "loopback",
             "cloud_ai_enabled": False,
             "error": health["error"],
         }
@@ -174,33 +243,70 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
         ),
         context: str = Form("{}"),
     ):
-        contents = await file.read()
+        if not app_config["ai_enabled"]:
+            return _safe_http_error(503, "AI_DISABLED", "AI analysis is disabled.")
         try:
-            df = ingest_csv_bytes(contents, filename=file.filename).dataframe
+            contents = await _read_limited_upload(file, limits)
         except IngestionError as exc:
             return _ingestion_error_response(exc)
         try:
-            ctx = json.loads(context)
-        except Exception:
-            ctx = {}
-
-        flags: list[dict[str, Any]] = []
-        prompt = (
-            "You are a metabolomics data reviewer running locally inside Validex. "
-            "Use only this structured summary; do not assume access to raw files.\n\n"
-            "DATASET SUMMARY:\n"
-            + _dataset_summary(df, flags, ctx)
-            + "\n\nQUESTION:\n"
-            + question
-            + "\n\nRespond with data quality concerns, interpretation risks, and concrete next steps."
-        )
+            ingested = ingest_csv_bytes(contents, filename=file.filename, limits=limits)
+        except IngestionError as exc:
+            return _ingestion_error_response(exc)
+        ctx = _context_from_form(context)
+        with tempfile.TemporaryDirectory(prefix="validex-") as tmpdir:
+            csv_path = os.path.join(tmpdir, _safe_filename(file.filename))
+            report_path = os.path.join(tmpdir, "validity_report.md")
+            json_path = os.path.join(tmpdir, "validity_report.json")
+            with open(csv_path, "wb") as handle:
+                handle.write(contents)
+            try:
+                await anyio.to_thread.run_sync(
+                    run_audit,
+                    csv_path,
+                    report_path,
+                    json_path,
+                    ctx,
+                    limits,
+                )
+            except IngestionError as exc:
+                return _ingestion_error_response(exc)
+            report_json = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        df = ingested.dataframe
+        input_summary = minimized_audit_payload(df, report_json, ctx, prompt_limits)
+        prompt = build_ai_prompt(df, report_json, question, ctx, prompt_limits)
         try:
-            analysis = ollama.generate(prompt, model=app_config["model"], timeout=90.0)
+            async with ai_semaphore:
+                raw = await anyio.to_thread.run_sync(
+                    ollama.generate,
+                    prompt,
+                    app_config["model"],
+                    float(app_config["ai_timeout_seconds"]),
+                )
+            analysis = parse_ai_analysis(
+                raw,
+                provider="ollama",
+                model_name=app_config["model"],
+                input_summary={
+                    "rows": int(df.shape[0]),
+                    "columns": int(df.shape[1]),
+                    "raw_rows_sent": False,
+                    "findings_sent": len(input_summary["findings"]),
+                },
+                report_json=report_json,
+                known_columns=set(map(str, df.columns)),
+            )
             return JSONResponse(
-                {"analysis": analysis, "status": "ok", "provider": "ollama"}
+                {"analysis": analysis.as_dict(), "status": "ok", "provider": "ollama"}
+            )
+        except AiResponseValidationError:
+            return _safe_http_error(
+                502,
+                "AI_INVALID_RESPONSE",
+                "AI response could not be validated. Deterministic audit results are unchanged.",
             )
         except OllamaError as exc:
-            raise HTTPException(503, str(exc))
+            return _safe_http_error(503, "AI_UNAVAILABLE", str(exc))
 
     @app.post("/lambda-analyze")
     async def legacy_lambda_analyze(
@@ -214,14 +320,14 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
 
     @app.post("/audit")
     async def audit(file: UploadFile = File(...), context: str = Form("{}")):
-        try:
-            ctx = json.loads(context)
-        except Exception:
-            ctx = {}
+        ctx = _context_from_form(context)
 
-        contents = await file.read()
         try:
-            ingested = ingest_csv_bytes(contents, filename=file.filename)
+            contents = await _read_limited_upload(file, limits)
+        except IngestionError as exc:
+            return _ingestion_error_response(exc)
+        try:
+            ingested = ingest_csv_bytes(contents, filename=file.filename, limits=limits)
         except IngestionError as exc:
             return _ingestion_error_response(exc)
 
@@ -232,11 +338,13 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
             with open(csv_path, "wb") as handle:
                 handle.write(contents)
             try:
-                report_md = run_audit(
-                    csv_path=csv_path,
-                    report_path=report_path,
-                    json_path=json_path,
-                    context=ctx,
+                report_md = await anyio.to_thread.run_sync(
+                    run_audit,
+                    csv_path,
+                    report_path,
+                    json_path,
+                    ctx,
+                    limits,
                 )
             except IngestionError as exc:
                 return _ingestion_error_response(exc)
@@ -256,37 +364,15 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
             "original_columns": ingested.metadata.original_columns,
         }
         preview_rows = _json_safe(
-            df.head(100).where(pd.notnull(df.head(100)), None).values.tolist()
+            df.head(int(app_config["preview_rows"]))
+            .where(pd.notnull(df.head(int(app_config["preview_rows"]))), None)
+            .values.tolist()
         )
 
         ai_score_data: dict[str, int | str | None] = {
             "ai_score": None,
             "ai_score_reason": None,
         }
-        notes = str(ctx.get("notes", "")).strip()
-        baseline_score = report_json.get("analysis", {}).get("confidence")
-        if notes and baseline_score is not None:
-            prompt = (
-                "You are a local metabolomics reviewer. Adjust this confidence score using the context. "
-                "Respond exactly as SCORE: <number> and REASON: <one sentence>.\n"
-                + _dataset_summary(
-                    df, report_json.get("analysis", {}).get("flags", []), ctx
-                )
-                + f"\nBASELINE SCORE: {baseline_score}/100\nNOTES: {notes}"
-            )
-            try:
-                raw = ollama.generate(prompt, model=app_config["model"], timeout=60.0)
-                score_match = re.search(r"SCORE:\s*(\d+)", raw)
-                reason_match = re.search(r"REASON:\s*(.+)", raw, re.DOTALL)
-                if score_match:
-                    ai_score_data["ai_score"] = max(
-                        0, min(100, int(score_match.group(1)))
-                    )
-                ai_score_data["ai_score_reason"] = (
-                    reason_match.group(1).strip() if reason_match else raw.strip()
-                )
-            except OllamaError:
-                ai_score_data = {"ai_score": None, "ai_score_reason": None}
 
         audit_analysis = report_json.get("analysis", {})
         audit_confidence = audit_analysis.get("audit_confidence", "low")
@@ -316,15 +402,23 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
 
     @app.post("/clean-data")
     async def clean_data(file: UploadFile = File(...)):
-        contents = await file.read()
         try:
-            ingested = ingest_csv_bytes(contents, filename=file.filename)
+            contents = await _read_limited_upload(file, limits)
+        except IngestionError as exc:
+            return _ingestion_error_response(exc)
+        try:
+            ingested = ingest_csv_bytes(contents, filename=file.filename, limits=limits)
         except IngestionError as exc:
             return _ingestion_error_response(exc)
         df = ingested.dataframe
-        clean_csv_b64 = base64.b64encode(df.to_csv(index=False).encode("utf-8")).decode(
-            "utf-8"
-        )
+        clean_csv = df.to_csv(index=False).encode("utf-8")
+        if len(clean_csv) > int(app_config["max_clean_export_bytes"]):
+            return _safe_http_error(
+                413,
+                "CLEAN_EXPORT_TOO_LARGE",
+                "Validated CSV export exceeds the configured size limit.",
+            )
+        clean_csv_b64 = base64.b64encode(clean_csv).decode("utf-8")
         return JSONResponse(
             _json_safe(
                 {

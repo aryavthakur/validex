@@ -46,13 +46,10 @@ def test_generate_posts_to_localhost_ollama(monkeypatch):
     result = OllamaClient("http://localhost:11434").generate("hello", model="llama3.2:3b", timeout=12.0)
 
     assert result == "ok"
-    assert calls == [
-        (
-            "http://localhost:11434/api/generate",
-            {"model": "llama3.2:3b", "prompt": "hello", "stream": False},
-            12.0,
-        )
-    ]
+    assert calls[0][0] == "http://localhost:11434/api/generate"
+    assert calls[0][1] == {"model": "llama3.2:3b", "prompt": "hello", "stream": False}
+    assert calls[0][2].read == 12.0
+    assert calls[0][2].connect == 5.0
 
 
 def test_pull_model_reports_clear_failure(monkeypatch):

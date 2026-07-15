@@ -1,28 +1,30 @@
 # Validex
 
-Validex is a local, privacy-first AI data auditing app. It runs from the terminal, opens in your browser, analyzes CSV datasets on your device, and uses local Ollama AI for explanations and review support.
+Validex is a local-first metabolomics result-table auditing app. It runs from the terminal, opens in your browser, audits CSV datasets with deterministic checks, and can use Ollama for optional supplemental explanations.
 
 ## Key Features
 
 - Local web app served by FastAPI.
-- Private dataset processing on your machine.
-- Local Ollama AI with `llama3.2:3b` by default.
+- Deterministic auditing that works without AI.
+- Local Ollama AI with `llama3.2:3b` by default for optional explanations.
 - No cloud AI by default.
 - CSV audit workflow for metabolomics result tables.
 - Installable `validex` command.
 
-## Privacy Guarantee
+## Privacy Boundary
 
 Validex is designed to run locally by default:
 
-- Datasets stay on your device.
+- Uploaded CSV files are processed by the local Validex application by default.
 - The browser frontend talks to the local FastAPI backend.
 - The backend talks only to local Ollama by default.
 - No OpenAI, Groq, OpenRouter, Anthropic, or hosted backend is used by default.
 - The server binds to `127.0.0.1` by default, not `0.0.0.0`.
 - No telemetry, analytics, external tracking, remote logging, or remote crash reporting is included.
 
-Uploaded CSV files are written only to a temporary local directory during audit processing and deleted after the request finishes. AI prompts use structured summaries, schema, statistics, and audit flags rather than sending raw full datasets to a remote service.
+Uploaded CSV files are written only to a temporary local directory during audit processing and deleted after the request finishes. Deterministic audit does not require AI. When optional AI analysis is explicitly used, Validex sends a capped structured summary to Ollama: detected schema names, aggregate shape, deterministic score/confidence, bounded findings, bounded user context, and the user question. Validex does not send full raw CSV rows to AI by default.
+
+Local execution does not eliminate every privacy risk. Validex cannot guarantee Ollama logging, retention, model behavior, operating-system behavior, or isolation from other local processes. If `ollama_url` is configured to a non-loopback host, structured summaries and user context may leave this device and the session is not local-only.
 
 ## Requirements
 
@@ -76,7 +78,7 @@ Validex is running locally.
 App: http://127.0.0.1:PORT
 AI provider: Ollama
 Model: llama3.2:3b
-Privacy mode: Local only, no cloud AI
+Privacy mode: Local only, no cloud AI when Ollama URL is loopback; remote Ollama is not local-only
 ```
 
 ## CLI Commands
@@ -99,12 +101,27 @@ Config lives at `~/.validex/config.json`. Local privacy defaults are enforced wh
   "ai_provider": "ollama",
   "ollama_url": "http://localhost:11434",
   "model": "llama3.2:3b",
+  "ai_enabled": true,
   "cloud_ai_enabled": false,
   "open_browser": true,
   "host": "127.0.0.1",
-  "port": null
+  "port": null,
+  "max_upload_bytes": 52428800,
+  "max_rows": 100000,
+  "max_columns": 500,
+  "max_total_cells": 5000000,
+  "max_cell_length": 20000,
+  "max_header_length": 300
 }
 ```
+
+Important defaults:
+
+- Uploads over 50 MiB are rejected.
+- CSVs over 100,000 rows, 500 columns, or 5,000,000 cells are rejected.
+- Individual cells over 20,000 characters and headers over 300 characters are rejected.
+- CSV preview rows and validated export size are capped.
+- AI prompts and model responses have separate size, timeout, and concurrency limits.
 
 ## Troubleshooting
 
@@ -247,7 +264,7 @@ A pilot validation workspace is available under `validation/pilot/` for manually
 
 ## Scope and Claims
 
-Validex audits post-analysis result tables for reporting completeness. It does not process raw instrument data, perform statistical testing, validate biological findings, or replace expert review.
+Validex audits post-analysis result tables for reporting completeness. It does not process raw instrument data, perform statistical testing, validate biological findings, certify publication readiness, or replace expert review. AI explanations are supplemental, non-deterministic, and not scientifically verified by Validex.
 
 See [`docs/scope_and_prior_art.md`](docs/scope_and_prior_art.md) for a full description of what Validex does and does not do, where it sits in the metabolomics workflow, adjacent tool categories, prior-art citation placeholders, current evidence level, and allowed versus disallowed claims.
 

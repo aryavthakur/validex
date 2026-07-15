@@ -11,13 +11,14 @@ def test_privacy_status_reports_local_only_ollama():
     response = client.get("/api/privacy/status")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "provider": "ollama",
-        "local_only": True,
-        "cloud_ai_enabled": False,
-        "ollama_url": "http://localhost:11434",
-        "model": "llama3.2:3b",
-    }
+    payload = response.json()
+    assert payload["provider"] == "ollama"
+    assert payload["local_only"] is True
+    assert payload["provider_host_classification"] == "loopback"
+    assert payload["cloud_ai_enabled"] is False
+    assert payload["ollama_url"] == "http://localhost:11434"
+    assert payload["model"] == "llama3.2:3b"
+    assert payload["raw_rows_sent_to_ai"] is False
 
 
 def test_health_route_is_namespaced_and_legacy_compatible():
@@ -47,7 +48,12 @@ def test_ai_analyze_uses_local_ollama_with_structured_summary(monkeypatch):
 
         def generate(self, prompt, model, timeout):
             prompts.append((prompt, model, timeout))
-            return "local analysis"
+            return (
+                '{"summary":"local analysis","key_findings":["No high-severity '
+                'finding."],"limitations":["AI is supplemental."],'
+                '"suggested_next_steps":["Review deterministic findings."],'
+                '"warnings":["Do not treat this as certification."]}'
+            )
 
     monkeypatch.setattr("validex.server.OllamaClient", FakeOllama)
     app = create_app(config=DEFAULT_CONFIG)
@@ -65,17 +71,17 @@ def test_ai_analyze_uses_local_ollama_with_structured_summary(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "analysis": "local analysis",
-        "status": "ok",
-        "provider": "ollama",
-    }
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["provider"] == "ollama"
+    assert payload["analysis"]["summary"] == "local analysis"
+    assert payload["analysis"]["provider"] == "ollama"
     prompt, model, timeout = prompts[0]
-    assert "DATASET SUMMARY" in prompt
+    assert "UNTRUSTED_AUDIT_DATA_JSON" in prompt
     assert '"columns": ["metabolite", "p_value", "log2fc"]' in prompt
     assert "A,0.01,1.5" not in prompt
     assert model == "llama3.2:3b"
-    assert timeout == 90.0
+    assert timeout == 60.0
 
 
 def test_ai_status_reports_local_ollama_without_cloud_calls(monkeypatch):

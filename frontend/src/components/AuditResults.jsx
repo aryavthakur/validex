@@ -37,7 +37,7 @@ function ScorePanel({ score, confidence, ai }) {
         {ai.available ? (
           <>
             <strong style={{ color: "var(--text)" }}>Optional local AI explanation:</strong>{" "}
-            {ai.reason || "AI returned no explanatory text."}
+            {ai.reason || "AI returned no validated explanatory text."}
           </>
         ) : (
           "Local AI explanation unavailable. Deterministic findings remain available and are not overridden by AI."
@@ -533,7 +533,7 @@ export default function AuditResults({ results, file, onReset, isDemo, context }
           <div className="card-label">Optional Local AI Explanation</div>
           <div style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.7 }}>
             {vm.ai.available
-              ? (vm.ai.reason || "Local AI returned a score but no explanatory text.")
+              ? (vm.ai.reason || "Local AI returned no validated explanatory text.")
               : "Local AI explanation unavailable. This does not affect the deterministic audit score or findings."}
           </div>
         </div>
