@@ -172,7 +172,9 @@ def test_server_serves_static_with_cache_headers_and_keeps_api_routes_reachable(
 
     missing_response = client.get("/assets/does-not-exist.js")
     assert missing_response.status_code == 404
-    assert client.get("/api/health").json() == {"status": "ok"}
+    health = client.get("/api/health").json()
+    assert health["status"] == "ok"
+    assert health["version"]
 
 
 def test_wheel_static_file_filter_rejects_frontend_development_artifacts(tmp_path):

@@ -350,7 +350,7 @@ function StatsRow() {
 // ── LANDING PAGE ─────────────────────────────────────────────────────────────
 
 function AnimatedHeroTitle() {
-  const words = useMemo(() => ["publication-ready", "validated", "audit-grade", "AI-scored", "reproducible"], []);
+  const words = useMemo(() => ["locally audited", "deterministic", "research-preview", "AI-optional", "reproducible"], []);
   const [index, setIndex] = useState(0);
 
   useEffect(() => {

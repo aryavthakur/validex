@@ -363,7 +363,7 @@ function Nav({ onLaunch, onBack, onReset, isDemo }) {
             Demo mode
           </span>
         )}
-        {!isDemo && <span className="nav-tag">Beta</span>}
+        {!isDemo && <span className="nav-tag">Research preview</span>}
         {onReset && (
           <button className="btn-ghost-nav" onClick={onReset}>← New audit</button>
         )}

@@ -2,6 +2,8 @@
 
 A pre-release checklist for Validex 0.x releases. Work through each section before tagging a version.
 
+Release status for 0.1.0: **Research preview**. The release must not claim independent scientific validation unless `validation/manifest.json` identifies eligible datasets, checksums, labels, licensing, and processed metrics.
+
 ---
 
 ## 1. Core Correctness Checks
@@ -97,11 +99,19 @@ The following limitations must not be obscured in any release communication:
 
 ## 9. Commands to Run
 
-Run all of these before tagging a release. All must pass with zero failures.
+Run the authoritative release-candidate command before tagging a release. It orchestrates the mandatory gates and reports documented warnings separately from blockers:
+
+```bash
+python scripts/verify_release_candidate.py
+```
+
+The command includes these underlying checks:
 
 ```bash
 # Full test suite
 pytest -q
+ruff check .
+mypy validex
 
 # Frontend lint, tests, and clean production build
 cd frontend
@@ -118,19 +128,15 @@ python scripts/verify_frontend_assets.py
 # Benchmark suite
 python benchmarks/run_benchmark.py
 
-# Wheel build and install smoke test
-python -m pip wheel . --no-deps -w /private/tmp/validex-release-wheel
-python -m venv /private/tmp/validex-release-venv
-/private/tmp/validex-release-venv/bin/python -m pip install /private/tmp/validex-release-wheel/validex-*.whl
-/private/tmp/validex-release-venv/bin/validex --help
+# Dependency audits
+python scripts/audit_python_dependencies.py
+cd frontend && npm audit --audit-level=moderate && cd ..
+
+# External validation manifest gate
+python validation/run_external_validation.py --manifest validation/manifest.json
+
+# Wheel and sdist build, archive inspection, sdist-built wheel, installed-runtime smoke
+python -m build --wheel --sdist --outdir /private/tmp/validex-release-dist
 ```
 
-If linting is configured:
-
-```bash
-# If ruff is installed
-ruff check validex/ tests/ benchmarks/
-
-# If mypy is installed
-mypy validex/
-```
+See `docs/release_readiness_policy.md` and `docs/release_notes_template.md`.

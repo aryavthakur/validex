@@ -21,6 +21,7 @@ from .ai.prompting import AiPromptLimits, build_ai_prompt, minimized_audit_paylo
 from .ai.ollama_client import OllamaClient, OllamaError
 from .ai.response_schema import AiResponseValidationError, parse_ai_analysis
 from .audit import run_audit
+from . import __version__
 from .config import (
     DEFAULT_CONFIG,
     classify_provider_host,
@@ -140,7 +141,7 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
     except TypeError:
         ollama = OllamaClient(app_config["ollama_url"])
 
-    app = FastAPI(title="Validex Local API", version="0.1.0")
+    app = FastAPI(title="Validex Local API", version=__version__)
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^http://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -187,11 +188,11 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
 
     @app.get("/api/health")
     def api_health():
-        return {"status": "ok"}
+        return {"status": "ok", "version": __version__}
 
     @app.get("/health")
     def legacy_health():
-        return {"status": "ok"}
+        return {"status": "ok", "version": __version__}
 
     @app.get("/api/privacy/status")
     def privacy_status():

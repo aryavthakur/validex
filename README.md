@@ -2,6 +2,8 @@
 
 Validex is a local-first metabolomics result-table auditing app. It runs from the terminal, opens in your browser, audits CSV datasets with deterministic checks, and can use Ollama for optional supplemental explanations.
 
+Release status: **Research preview**. Validex has deterministic regression tests and a synthetic benchmark suite, but this repository does not currently contain a legally redistributable independent external-validation dataset. Do not treat Validex as clinically validated, publication-ready, or generally validated across all metabolomics platforms.
+
 ## Key Features
 
 - Local web app served by FastAPI.
@@ -198,7 +200,7 @@ validex
 ## Developer Setup
 
 ```bash
-python -m pip install -e .
+python -m pip install -c requirements-dev.txt -e '.[dev,audit]'
 python -m pytest tests -q
 ```
 
@@ -210,6 +212,14 @@ The authoritative release workflow builds the reviewed frontend source in a temp
 python scripts/build_frontend.py
 python scripts/verify_frontend_assets.py
 ```
+
+The final local release-candidate gate is:
+
+```bash
+python scripts/verify_release_candidate.py
+```
+
+This command runs backend tests, Ruff, mypy, the scientific benchmark, frontend lint/tests/build, static parity, wheel and source distribution builds, artifact inspection, installed-wheel smoke checks, dependency audits, external-validation manifest checks, and repeated-build content comparison. It uses temporary directories and does not require Playwright.
 
 Requirements:
 
@@ -238,6 +248,8 @@ Do not manually copy frontend build output into `validex/static`; use `python sc
 ## Benchmark Suite
 
 Validex includes a reproducible benchmark suite that evaluates schema detection accuracy and audit behavior across 14 synthetic fixture tables covering standard tables, missing statistical fields, invalid statistical values, ambiguous aliases, adversarial headers, and common export-style headers. On this included benchmark suite, Validex currently achieves 100% field-level schema detection precision and recall.
+
+This benchmark is synthetic regression evidence. It is not independent external validation and should not be described as proof of scientific validity.
 
 This benchmark is a regression and behavior suite, not a real-world validation study. It does not establish performance across published metabolomics supplements or expert-labeled external datasets.
 

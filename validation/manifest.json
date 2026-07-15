@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "datasets": [
+    {
+      "dataset_id": "EXAMPLE_MANIFEST_ONLY",
+      "title": "Example manifest entry for an unavailable independent metabolomics table",
+      "source": "Example placeholder; not a redistributed dataset",
+      "version": "n/a",
+      "license": "not redistributed",
+      "redistribution_allowed": false,
+      "local_path": null,
+      "download_url": null,
+      "sha256": null,
+      "data_category": "independent_external_candidate_unavailable",
+      "expected_schema": {
+        "compound_id": "declared by future labels",
+        "effect_size": "declared by future labels",
+        "p_value": "declared by future labels",
+        "fdr": "declared by future labels",
+        "annotation": "declared by future labels"
+      },
+      "ground_truth_source": "No committed ground truth labels are available for this placeholder.",
+      "preprocessing": [
+        "No preprocessing is applied because no redistributable dataset is present."
+      ],
+      "enabled_by_default": false,
+      "required_for_release": false,
+      "notes": "This manifest intentionally prevents private or unavailable external data from being treated as a passing release validation result."
+    }
+  ]
+}

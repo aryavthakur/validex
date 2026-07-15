@@ -1,8 +1,16 @@
 # Validex External Validation Protocol
 
-**Status: scaffold only. No external validation results have been reported.**
+**Status: EXTERNAL_VALIDATION_INCOMPLETE. No external validation results have been reported.**
 
 This document defines the protocol for an external validation study of Validex on real published metabolomics result tables. The study has not been conducted yet. This document defines how it must be conducted when it is.
+
+The authoritative release interface is:
+
+```bash
+python validation/run_external_validation.py --manifest validation/manifest.json
+```
+
+Legacy registry/labels/tables arguments remain available for manually supplied validation work, but release validation must use the manifest.
 
 ---
 

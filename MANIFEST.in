@@ -1,0 +1,27 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include pyproject.toml
+include setup.py
+include requirements-dev.txt
+include frontend/package.json
+include frontend/package-lock.json
+include frontend/vite.config.js
+include frontend/tsconfig.json
+include frontend/eslint.config.js
+include frontend/index.html
+recursive-include frontend/src *
+recursive-include frontend/public *
+recursive-include frontend/public-local *
+recursive-include scripts *.py
+recursive-include benchmarks *.py *.csv *.json *.md
+recursive-include validation *.py *.json *.csv *.md
+recursive-include docs *.md *.json
+recursive-include tests *.py
+recursive-exclude validation/pilot *
+recursive-exclude docs/superpowers *
+recursive-exclude frontend node_modules *
+recursive-exclude frontend dist *
+recursive-exclude frontend coverage *
+recursive-exclude .playwright-cli *
+global-exclude __pycache__ *.py[cod] *.map .DS_Store .env .env.local

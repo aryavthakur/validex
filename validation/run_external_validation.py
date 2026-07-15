@@ -23,10 +23,12 @@ documentation. See docs/external_validation_protocol.md.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import csv
 import json
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +40,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from validex.audit import audit_dataframe  # noqa: E402
+from validex import __version__  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +120,196 @@ def _load_csv(path: Path) -> list[dict[str, str]]:
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         return [dict(row) for row in reader]
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _safe_manifest_path(base: Path, raw: str | None) -> Path | None:
+    if not raw:
+        return None
+    path = Path(raw)
+    if path.is_absolute():
+        raise ValueError(f"Manifest path must be relative, not absolute: {raw}")
+    resolved = (base / path).resolve()
+    if base.resolve() != resolved and base.resolve() not in resolved.parents:
+        raise ValueError(f"Manifest path escapes validation directory: {raw}")
+    if any(part == ".." for part in path.parts):
+        raise ValueError(f"Manifest path must not contain '..': {raw}")
+    if resolved.is_symlink():
+        raise ValueError(f"Manifest path must not be a symlink: {raw}")
+    return resolved
+
+
+@dataclass(frozen=True)
+class ManifestDataset:
+    dataset_id: str
+    title: str
+    source: str
+    version: str
+    license: str
+    redistribution_allowed: bool
+    local_path: Path | None
+    download_url: str | None
+    sha256: str | None
+    data_category: str
+    expected_schema: dict[str, str]
+    ground_truth_source: str
+    preprocessing: list[str]
+    enabled_by_default: bool
+    required_for_release: bool
+    notes: str
+
+
+def load_manifest(manifest_path: Path) -> list[ManifestDataset]:
+    base = manifest_path.resolve().parent
+    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    datasets = raw.get("datasets")
+    if not isinstance(datasets, list):
+        raise ValueError("Manifest must contain a datasets list")
+    parsed: list[ManifestDataset] = []
+    seen_dataset_ids: set[str] = set()
+    for item in datasets:
+        if not isinstance(item, dict):
+            raise ValueError("Each manifest dataset must be an object")
+        dataset_id = str(item.get("dataset_id", "")).strip()
+        if not dataset_id:
+            raise ValueError("Manifest dataset is missing dataset_id")
+        if dataset_id in seen_dataset_ids:
+            raise ValueError(f"Manifest contains duplicate dataset_id: {dataset_id}")
+        seen_dataset_ids.add(dataset_id)
+        local_path = _safe_manifest_path(base, item.get("local_path"))
+        sha256 = item.get("sha256")
+        required = bool(item.get("required_for_release", False))
+        redistribution_allowed = bool(item.get("redistribution_allowed", False))
+        license_name = str(item.get("license", "")).strip()
+        if required and local_path is not None and not sha256:
+            raise ValueError(f"{dataset_id}: release-required local dataset needs sha256")
+        if redistribution_allowed and license_name.lower() in {"", "unknown", "tbd"}:
+            raise ValueError(f"{dataset_id}: redistributed dataset has unknown license")
+        parsed.append(
+            ManifestDataset(
+                dataset_id=dataset_id,
+                title=str(item.get("title", "")).strip(),
+                source=str(item.get("source", "")).strip(),
+                version=str(item.get("version", "")).strip(),
+                license=license_name,
+                redistribution_allowed=redistribution_allowed,
+                local_path=local_path,
+                download_url=item.get("download_url"),
+                sha256=sha256,
+                data_category=str(item.get("data_category", "unknown")).strip(),
+                expected_schema=dict(item.get("expected_schema", {})),
+                ground_truth_source=str(item.get("ground_truth_source", "")).strip(),
+                preprocessing=list(item.get("preprocessing", [])),
+                enabled_by_default=bool(item.get("enabled_by_default", False)),
+                required_for_release=required,
+                notes=str(item.get("notes", "")).strip(),
+            )
+        )
+    return parsed
+
+
+def run_manifest_validation(
+    manifest_path: Path,
+    output_path: Path | None = None,
+    report_path: Path | None = None,
+) -> dict[str, Any]:
+    datasets = load_manifest(manifest_path)
+    dataset_reports: list[dict[str, Any]] = []
+    blockers: list[str] = []
+    processed = 0
+    for dataset in datasets:
+        status = "unavailable"
+        checksum_actual = None
+        if dataset.local_path is not None and dataset.local_path.exists():
+            checksum_actual = sha256_file(dataset.local_path)
+            if dataset.sha256 and checksum_actual != dataset.sha256:
+                status = "checksum_mismatch"
+                if dataset.required_for_release:
+                    blockers.append(f"{dataset.dataset_id}: checksum mismatch")
+            elif dataset.enabled_by_default and dataset.local_path.suffix.lower() == ".csv":
+                df = pd.read_csv(dataset.local_path)
+                audit_dataframe(df)
+                processed += 1
+                status = "processed"
+            else:
+                status = "available_not_processed"
+        elif dataset.required_for_release:
+            blockers.append(f"{dataset.dataset_id}: required dataset is unavailable")
+        dataset_reports.append(
+            {
+                "dataset_id": dataset.dataset_id,
+                "title": dataset.title,
+                "source": dataset.source,
+                "version": dataset.version,
+                "license": dataset.license,
+                "redistribution_allowed": dataset.redistribution_allowed,
+                "data_category": dataset.data_category,
+                "enabled_by_default": dataset.enabled_by_default,
+                "required_for_release": dataset.required_for_release,
+                "sha256": dataset.sha256,
+                "sha256_actual": checksum_actual,
+                "ground_truth_source": dataset.ground_truth_source,
+                "preprocessing": dataset.preprocessing,
+                "status": status,
+                "notes": dataset.notes,
+            }
+        )
+    status = (
+        "FAILED"
+        if blockers
+        else ("COMPLETED" if processed else "EXTERNAL_VALIDATION_INCOMPLETE")
+    )
+    output = {
+        "protocol_version": "2.0",
+        "status": status,
+        "software": {"name": "validex", "version": __version__},
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "manifest": str(manifest_path),
+        "n_datasets": len(datasets),
+        "n_processed": processed,
+        "datasets": dataset_reports,
+        "blockers": blockers,
+        "metrics": {
+            "independent_external_dataset_performance": None,
+            "synthetic_benchmark_performance": "Run python benchmarks/run_benchmark.py separately.",
+        },
+        "limitations": [
+            "No independent external-validation performance metric is reported unless a legally usable labeled external dataset is present.",
+            "Synthetic and repository fixtures are regression evidence, not independent external validation.",
+            "AI is excluded from external validation.",
+        ],
+        "reproduction_commands": [
+            f"python validation/run_external_validation.py --manifest {manifest_path.as_posix()}"
+        ],
+    }
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+    if report_path:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        lines = [
+            "# Validex External Validation Report",
+            "",
+            f"Status: {status}",
+            f"Software version: {__version__}",
+            f"Datasets in manifest: {len(datasets)}",
+            f"Datasets processed: {processed}",
+            "",
+            "## Limitations",
+            "",
+            "- Independent external validation is incomplete unless processed datasets are reported above.",
+            "- Synthetic benchmarks are separate from external validation.",
+            "- AI is excluded.",
+        ]
+        report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return output
 
 
 def _check_required_columns(
@@ -614,14 +807,16 @@ def build_parser() -> argparse.ArgumentParser:
             "See docs/external_validation_protocol.md."
         ),
     )
-    p.add_argument("--registry", required=True, help="Path to registry CSV file.")
-    p.add_argument("--labels", required=True, help="Path to labels CSV file.")
+    p.add_argument("--manifest", default=None, help="Path to validation manifest JSON.")
+    p.add_argument("--registry", default=None, help="Path to registry CSV file.")
+    p.add_argument("--labels", default=None, help="Path to labels CSV file.")
     p.add_argument(
-        "--tables-dir", required=True, help="Directory containing table CSV files."
+        "--tables-dir", default=None, help="Directory containing table CSV files."
     )
     p.add_argument(
         "--output", default=None, help="Optional path to write JSON results."
     )
+    p.add_argument("--report", default=None, help="Optional path to write Markdown report.")
     return p
 
 
@@ -629,10 +824,36 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    output_path = Path(args.output) if args.output else None
+    report_path = Path(args.report) if args.report else None
+
+    if args.manifest:
+        try:
+            output = run_manifest_validation(
+                manifest_path=Path(args.manifest),
+                output_path=output_path,
+                report_path=report_path,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        print(f"External validation status: {output['status']}")
+        if output["status"] == "FAILED":
+            for blocker in output["blockers"]:
+                print(f"BLOCKER: {blocker}", file=sys.stderr)
+            return 1
+        if output["status"] == "EXTERNAL_VALIDATION_INCOMPLETE":
+            print(
+                "WARNING: independent external validation is incomplete; no performance claim is made."
+            )
+        return 0
+
+    if not args.registry or not args.labels or not args.tables_dir:
+        parser.error("either --manifest or all of --registry, --labels, and --tables-dir are required")
+
     registry_path = Path(args.registry)
     labels_path = Path(args.labels)
     tables_dir = Path(args.tables_dir)
-    output_path = Path(args.output) if args.output else None
 
     print(f"Registry:   {registry_path}")
     print(f"Labels:     {labels_path}")

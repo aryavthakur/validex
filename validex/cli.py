@@ -11,6 +11,7 @@ from typing import Any
 
 import uvicorn
 
+from . import __version__
 from .ai.ollama_client import OllamaClient, OllamaError
 from .audit import audit_dataframe
 from .config import DEFAULT_CONFIG, config_path, load_config, save_config
@@ -269,6 +270,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="validex", description="Run Validex locally with private Ollama AI."
     )
+    parser.add_argument("--version", action="version", version=f"validex {__version__}")
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("status")
     model = subparsers.add_parser("model")

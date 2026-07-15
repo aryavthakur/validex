@@ -25,8 +25,12 @@ def test_health_route_is_namespaced_and_legacy_compatible():
     app = create_app(config=DEFAULT_CONFIG)
     client = TestClient(app)
 
-    assert client.get("/api/health").json() == {"status": "ok"}
-    assert client.get("/health").json() == {"status": "ok"}
+    health = client.get("/api/health").json()
+    assert health["status"] == "ok"
+    assert health["version"]
+    legacy_health = client.get("/health").json()
+    assert legacy_health["status"] == "ok"
+    assert legacy_health["version"]
 
 
 def test_packaged_frontend_is_served_when_built():
