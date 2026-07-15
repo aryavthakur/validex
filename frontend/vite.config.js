@@ -3,9 +3,12 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "path";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
   publicDir: "public-local",
+  define: command === "build"
+    ? { "import.meta.env.VITE_API_URL": JSON.stringify("") }
+    : {},
   build: {
     outDir: "../validex/static",
     emptyOutDir: true,
@@ -23,4 +26,4 @@ export default defineConfig({
     setupFiles: "./src/test/setup.js",
     globals: true,
   },
-});
+}));

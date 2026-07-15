@@ -22,6 +22,9 @@ from .ingestion import IngestionError, ingest_csv_bytes
 from .schema_mapper import detect_schema
 
 
+_HASHED_STATIC_RE = re.compile(r"^/assets/.+-[A-Za-z0-9_-]{8,}\.(?:js|css)$")
+
+
 def _frontend_dist() -> Path:
     packaged = Path(__file__).resolve().parent / "static"
     if packaged.exists():
@@ -86,6 +89,26 @@ def create_app(config: dict[str, Any] | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def frontend_cache_headers(request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path in {"/", "/index.html"} and "text/html" in response.headers.get(
+            "content-type", ""
+        ):
+            response.headers["Cache-Control"] = "no-cache"
+        elif response.status_code == 200 and _HASHED_STATIC_RE.match(path):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif response.status_code == 200 and path.startswith(
+            ("/assets/", "/fonts/", "/mobile/")
+        ):
+            response.headers.setdefault("Cache-Control", "public, max-age=3600")
+        elif response.status_code == 404 and path.startswith(
+            ("/assets/", "/fonts/", "/mobile/")
+        ):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
     @app.get("/api/health")
     def api_health():

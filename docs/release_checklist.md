@@ -70,6 +70,13 @@ Do not release if any of the following language appears in README, docs, or docs
 - [ ] `[tool.setuptools.packages.find]` includes only `["validex*"]` — benchmarks and docs are not packaged as runtime modules.
 - [ ] `[project.scripts]` entry point `validex = "validex.cli:main"` is correct.
 - [ ] `requires-python = ">=3.10"` is accurate.
+- [ ] Node is 20.19.0 or newer for frontend release builds.
+- [ ] `python scripts/build_frontend.py` completes; it runs `npm ci` in a temporary frontend copy and synchronizes production assets into `validex/static`.
+- [ ] `python scripts/verify_frontend_assets.py` exits 0, proving `validex/static` matches a clean production frontend build by content.
+- [ ] `validex/static/index.html` references only existing local assets.
+- [ ] The wheel contains the current `validex/static/index.html`, referenced JS/CSS, fonts, images, and media.
+- [ ] The wheel excludes frontend tests, coverage, `node_modules`, `.env.local`, `.playwright-cli`, pilot/private data, and temporary build directories.
+- [ ] Installed-wheel smoke checks cover `validex --help`, valid and invalid CLI audits, `/`, referenced static assets, `/api/health`, valid `/audit`, and invalid `/audit`.
 - [ ] All runtime dependencies in `[project.dependencies]` are actually used.
 - [ ] `httpx` is listed once only in `pyproject.toml`.
 - [ ] `backend/requirements.txt` does not duplicate or conflict with `pyproject.toml`.
@@ -94,15 +101,28 @@ Run all of these before tagging a release. All must pass with zero failures.
 
 ```bash
 # Full test suite
-pytest
+pytest -q
+
+# Frontend lint, tests, and clean production build
+cd frontend
+npm ci
+npm run lint
+npm test
+npm run build -- --outDir /private/tmp/validex-phase3-source-build --emptyOutDir
+cd ..
+
+# Authoritative frontend packaging workflow
+python scripts/build_frontend.py
+python scripts/verify_frontend_assets.py
 
 # Benchmark suite
 python benchmarks/run_benchmark.py
 
-# Install check (in a clean environment or after edits to pyproject.toml)
-pip install -e .
-validex --help
-validex config show
+# Wheel build and install smoke test
+python -m pip wheel . --no-deps -w /private/tmp/validex-release-wheel
+python -m venv /private/tmp/validex-release-venv
+/private/tmp/validex-release-venv/bin/python -m pip install /private/tmp/validex-release-wheel/validex-*.whl
+/private/tmp/validex-release-venv/bin/validex --help
 ```
 
 If linting is configured:

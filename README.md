@@ -187,21 +187,36 @@ python -m pytest tests -q
 
 Frontend source lives in `frontend/`. The packaged app does not need Node, Vite, or frontend development tools at runtime because the built frontend is included in `validex/static`.
 
-To rebuild the frontend during development:
+The authoritative release workflow builds the reviewed frontend source in a temporary clean copy, installs dependencies with `npm ci` from `frontend/package-lock.json`, excludes `.env.local`, and synchronizes only the production Vite output into `validex/static`:
+
+```bash
+python scripts/build_frontend.py
+python scripts/verify_frontend_assets.py
+```
+
+Requirements:
+
+- Python 3.10 or newer.
+- Node 20.19.0 or newer.
+- npm with lockfile v3 support.
+
+Frontend development commands:
 
 ```bash
 cd frontend
-npm install
-npm run build
-cd ..
+npm ci
+npm run lint
+npm test
+npm run build -- --outDir /private/tmp/validex-phase3-source-build --emptyOutDir
 ```
 
 For Vite development, point the frontend at a local backend:
 
 ```bash
-cd frontend
 VITE_API_URL=http://127.0.0.1:8000 npm run dev
 ```
+
+Do not manually copy frontend build output into `validex/static`; use `python scripts/build_frontend.py` so stale hashed assets are removed and package static assets stay reproducible.
 
 ## Benchmark Suite
 
