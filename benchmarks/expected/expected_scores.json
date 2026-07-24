@@ -1,0 +1,19 @@
+{
+    "complete_standard.csv": {"score_band": [100, 100], "confidence_label": "high"},
+    "missing_pvalues_dataset_c.csv": {
+        "score_band": [40, 40],
+        "confidence_label": "low"
+    },
+    "missing_fdr.csv": {"score_band": [80, 80], "confidence_label": "medium"},
+    "invalid_pvalues.csv": {"score_band": [45, 45], "confidence_label": "low"},
+    "invalid_fdr.csv": {"score_band": [65, 65], "confidence_label": "medium"},
+    "ambiguous_pvalues.csv": {"score_band": [95, 95], "confidence_label": "medium"},
+    "ambiguous_fdr.csv": {"score_band": [95, 95], "confidence_label": "medium"},
+    "adversarial_p_words.csv": {"score_band": [40, 40], "confidence_label": "low"},
+    "adversarial_fdr_words.csv": {"score_band": [80, 80], "confidence_label": "medium"},
+    "metaboanalyst_like.csv": {"score_band": [100, 100], "confidence_label": "high"},
+    "msdial_like.csv": {"score_band": [95, 95], "confidence_label": "medium"},
+    "xcms_like.csv": {"score_band": [100, 100], "confidence_label": "high"},
+    "mixed_case_headers.csv": {"score_band": [95, 95], "confidence_label": "medium"},
+    "punctuation_headers.csv": {"score_band": [100, 100], "confidence_label": "high"}
+}

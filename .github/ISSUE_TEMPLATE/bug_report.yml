@@ -1,0 +1,33 @@
+name: Bug Report
+description: Report incorrect audit behavior
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Validex Version
+      placeholder: "0.2.0"
+  - type: input
+    id: python
+    attributes:
+      label: Python Version
+  - type: dropdown
+    id: format
+    attributes:
+      label: Input Format
+      options: [CSV, TSV, XLSX, Other]
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce

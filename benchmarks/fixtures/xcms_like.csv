@@ -1,0 +1,8 @@
+feature_id,logFC,p.value,q.value,annotation
+FT0001,1.52,0.001,0.010,confirmed
+FT0002,-0.85,0.032,0.095,putative
+FT0003,2.10,0.008,0.040,confirmed
+FT0004,-1.30,0.210,0.425,putative
+FT0005,0.72,0.560,0.720,unknown
+FT0006,-0.40,0.830,0.900,putative
+FT0007,1.90,0.002,0.015,confirmed

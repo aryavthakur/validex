@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use Validex, please cite this work."
+title: "Validex: Deterministic Audit of Downstream Metabolomics Result Tables"
+type: software
+version: "0.2.0"
+date-released: "2026-07-24"
+license: MIT
+repository-code: "[PLACEHOLDER: repository URL]"
+authors:
+  - family-names: "Thakur"
+    given-names: "Aryav"
+    # orcid: "[PLACEHOLDER: ORCID]"
+keywords:
+  - metabolomics
+  - deterministic audit
+  - field recognition
+  - synthetic benchmark
+  - reproducibility
+abstract: >-
+  Validex is a research-preview deterministic audit tool for downstream
+  metabolomics result tables. It performs header-level field recognition
+  and value-level probability validation on CSV, TSV, and XLSX files.

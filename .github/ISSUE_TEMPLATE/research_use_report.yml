@@ -1,0 +1,37 @@
+name: Research Use Report
+description: Document your use of Validex in research
+labels: [research-use]
+body:
+  - type: input
+    id: field
+    attributes:
+      label: Research Field
+      placeholder: "e.g., metabolomics, lipidomics, analytical chemistry"
+  - type: dropdown
+    id: input_type
+    attributes:
+      label: Input Type
+      options: [CSV, TSV, XLSX, Mixed]
+  - type: textarea
+    id: use_case
+    attributes:
+      label: How are you using Validex?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Software Version
+  - type: textarea
+    id: limitations
+    attributes:
+      label: Observed Limitations
+  - type: input
+    id: citation
+    attributes:
+      label: Publication or Citation (if applicable)
+  - type: dropdown
+    id: permission
+    attributes:
+      label: May we reference this use as evidence of research impact?
+      options: ["Yes", "Yes, anonymized", "No"]

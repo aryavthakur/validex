@@ -1,0 +1,8 @@
+compound_id,logFC,p_value,Annotation
+M1,1.52,0.001,confirmed
+M2,-0.85,0.032,putative
+M3,2.10,0.008,confirmed
+M4,-1.30,0.210,putative
+M5,0.72,0.560,unknown
+M6,-0.40,0.830,putative
+M7,1.90,0.002,confirmed

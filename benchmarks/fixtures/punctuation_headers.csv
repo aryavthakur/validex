@@ -1,0 +1,8 @@
+compound.id,log2-fold-change,p.value,p.adjust,identification/confidence
+M1,1.52,0.001,0.010,confirmed
+M2,-0.85,0.032,0.095,putative
+M3,2.10,0.008,0.040,confirmed
+M4,-1.30,0.210,0.425,putative
+M5,0.72,0.560,0.720,unknown
+M6,-0.40,0.830,0.900,putative
+M7,1.90,0.002,0.015,confirmed
